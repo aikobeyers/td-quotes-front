@@ -15,6 +15,7 @@ import { MatIcon } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
 import { FiltersStore } from '../../../stores/filters.store';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { TdQuoteFiltersComponent } from '../td-quote-filters/td-quote-filters.component';
 import { take } from 'rxjs';
 import { TdQuoteCreateComponent } from '../td-quote-create/td-quote-create.component';
@@ -33,6 +34,7 @@ import { TdQuotesLeaderboardComponent } from '../td-quotes-leaderboard/td-quotes
     TdQuoteCreateComponent,
     TdQuoteGameComponent,
     TdQuotesLeaderboardComponent,
+    FormsModule,
   ],
   templateUrl: './td-quotes-overview.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -57,14 +59,22 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly tdQuotesService = inject(TdQuotesService);
   private readonly titleService = inject(Title);
   private readonly store = inject(FiltersStore);
+  private readonly secretTapThresholdMs = 200;
+  private readonly secretTapTarget = 5;
+  private brandTapCount = 0;
+  private lastBrandTapTime = 0;
 
   public quotes = this.store.quotes;
   private readonly favoriteStorageKey = 'td_quotes_favorites';
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
+  public isSecretModalOpen = signal(false);
+  public isSendingSecretNotification = signal(false);
   public activeTab = signal<'all' | 'recent' | 'favorites'>('all');
   public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
+  public secretNotificationTitle = 'Very important notification';
+  public secretNotificationBody = 'Someone added a new quote!';
   public displayedQuotes = computed(() => {
     const quoteList = this.quotes();
     const tab = this.activeTab();
@@ -104,6 +114,61 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public openFilters(): void {
     this.filtersComponent.openFilters();
+  }
+
+  public onBrandTap(): void {
+    const now = Date.now();
+
+    if (now - this.lastBrandTapTime <= this.secretTapThresholdMs) {
+      this.brandTapCount += 1;
+    } else {
+      this.brandTapCount = 1;
+    }
+
+    this.lastBrandTapTime = now;
+
+    if (this.brandTapCount >= this.secretTapTarget) {
+      this.brandTapCount = 0;
+      this.openSecretModal();
+    }
+  }
+
+  public openSecretModal(): void {
+    this.isSecretModalOpen.set(true);
+  }
+
+  public closeSecretModal(): void {
+    this.isSecretModalOpen.set(false);
+    this.isSendingSecretNotification.set(false);
+  }
+
+  public canSendSecretNotification(): boolean {
+    return (
+      this.secretNotificationTitle.trim().length > 0 &&
+      this.secretNotificationBody.trim().length > 0
+    );
+  }
+
+  public sendSecretNotification(): void {
+    if (!this.canSendSecretNotification() || this.isSendingSecretNotification()) {
+      return;
+    }
+
+    this.isSendingSecretNotification.set(true);
+    this.tdQuotesService
+      .sendNewQuotePushNotification(
+        this.secretNotificationTitle.trim(),
+        this.secretNotificationBody.trim()
+      )
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.closeSecretModal();
+        },
+        error: () => {
+          this.isSendingSecretNotification.set(false);
+        },
+      });
   }
 
   public openCreate(): void {
@@ -231,7 +296,10 @@ export class TdQuotesOverviewComponent implements OnInit {
         }
 
         this.tdQuotesService
-          .sendNewQuotePushNotification()
+          .sendNewQuotePushNotification(
+            'Very important notification',
+            'Someone added a new quote!'
+          )
           .pipe(take(1))
           .subscribe({
             error: () => {
