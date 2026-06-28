@@ -61,8 +61,10 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly store = inject(FiltersStore);
   private readonly secretTapThresholdMs = 200;
   private readonly secretTapTarget = 5;
+  private readonly syntheticClickWindowMs = 500;
   private brandTapCount = 0;
   private lastBrandTapTime = 0;
+  private lastTouchTapTime = 0;
 
   public quotes = this.store.quotes;
   private readonly favoriteStorageKey = 'td_quotes_favorites';
@@ -116,8 +118,21 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.filtersComponent.openFilters();
   }
 
-  public onBrandTap(): void {
+  public onBrandTap(event: Event): void {
+    const eventType = event.type;
     const now = Date.now();
+
+    if (eventType === 'touchstart') {
+      this.lastTouchTapTime = now;
+      event.preventDefault();
+    }
+
+    if (
+      eventType === 'click' &&
+      now - this.lastTouchTapTime <= this.syntheticClickWindowMs
+    ) {
+      return;
+    }
 
     if (now - this.lastBrandTapTime <= this.secretTapThresholdMs) {
       this.brandTapCount += 1;
