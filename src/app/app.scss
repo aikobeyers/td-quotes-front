@@ -1,0 +1,52 @@
+:host {
+	display: block;
+}
+
+.update-banner {
+	position: sticky;
+	top: 0;
+	z-index: 3000;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 16px;
+	background: linear-gradient(180deg, #eef2f8 0%, #e4eaf3 100%);
+	color: #1f2f44;
+	border-bottom: 1px solid #c7d0de;
+	box-shadow: 0 6px 18px rgba(15, 24, 37, 0.08);
+
+	.update-banner__text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.update-banner__title {
+		font-size: 14px;
+		font-weight: 700;
+		letter-spacing: 0.01em;
+	}
+
+	.update-banner__message {
+		font-size: 12px;
+		color: #526079;
+	}
+
+	.update-banner__action {
+		flex-shrink: 0;
+		border: 1px solid #b7c2d3;
+		background: #f8faff;
+		color: #20324a;
+		border-radius: 999px;
+		padding: 9px 14px;
+		font-size: 13px;
+		font-weight: 600;
+		min-width: 92px;
+	}
+
+	.update-banner__action:disabled {
+		opacity: 0.75;
+	}
+}

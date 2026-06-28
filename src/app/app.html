@@ -1,1 +1,19 @@
+@if (updateAvailable()) {
+	<div class="update-banner" role="status" aria-live="polite">
+		<div class="update-banner__text">
+			<span class="update-banner__title">Update available</span>
+			<span class="update-banner__message">Tap to refresh and get the latest version.</span>
+		</div>
+
+		<button
+			type="button"
+			class="update-banner__action"
+			[disabled]="updateInProgress()"
+			(click)="refreshApp()"
+		>
+			{{ updateInProgress() ? 'Refreshing...' : 'Refresh' }}
+		</button>
+	</div>
+}
+
 <router-outlet />
