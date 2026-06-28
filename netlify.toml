@@ -8,6 +8,11 @@
   NODE_VERSION = "24.15.0"
   NPM_FLAGS = "--legacy-peer-deps"
 
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
   ## Uncomment to use this redirect for Single Page Applications like create-react-app.
   ## Not needed for static site generators.
   #[[redirects]]
