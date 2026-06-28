@@ -1,6 +1,9 @@
 .td-quotes-overview--wrapper {
     position: relative;
     height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
     background: radial-gradient(circle at top left, #fafaf8 0%, #f4f3f1 60%, #efeeec 100%);
 
     .td-quotes-overview--header {
@@ -67,8 +70,6 @@
     }
 
     .td-quotes-overview--container {
-        height: calc(100dvh - 88px);
-        overflow-y: auto;
         padding: 6px 16px 20px;
 
         .overview--intro {

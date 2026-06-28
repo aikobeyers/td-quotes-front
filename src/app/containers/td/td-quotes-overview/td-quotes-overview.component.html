@@ -1,4 +1,4 @@
-<div class="td-quotes-overview--wrapper">
+<div class="td-quotes-overview--wrapper" #container (scroll)="onScroll($event)">
     <div class="td-quotes-overview--header" [ngClass]="{ scrolled: hasScrolled() }">
         <div class="header--brand">
             <img src="icons/TD Icon sleek new.png" alt="TD" class="brand--logo" />
@@ -16,7 +16,7 @@
     </div>
     </div>
 
-    <div class="td-quotes-overview--container" #container (scroll)="onScroll($event)">
+    <div class="td-quotes-overview--container">
         <section class="overview--intro">
             <div class="overview--tabs">
                 <button
