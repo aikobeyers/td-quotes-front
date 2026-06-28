@@ -7,16 +7,6 @@
         <div class="header--title">TD Quotes</div>
 
         <div class="header--actions">
-            <button
-                class="icon-button icon-button--test-push"
-                type="button"
-                [disabled]="isSendingTestPush()"
-                (click)="sendTestPushNotification()"
-                aria-label="Send test push notification"
-                title="Temporary: send test push"
-            >
-                <mat-icon [fontIcon]="isSendingTestPush() ? 'hourglass_top' : 'notifications'" />
-            </button>
             <button class="icon-button" type="button" (click)="openCreate()" aria-label="Create quote">
                 <mat-icon fontIcon="add"></mat-icon>
             </button>

@@ -58,7 +58,7 @@ export class TdQuotesService {
 
   public sendNewQuotePushNotification(): Observable<void> {
     return this.http.post<void>(`${BASE_URL}/push/broadcast`, {
-      title: 'TD Quotes',
+      title: 'Very important notification',
       body: 'Someone added a new quote!',
     });
   }
