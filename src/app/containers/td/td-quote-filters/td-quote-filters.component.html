@@ -1,29 +1,48 @@
-<div class="filters--wrapper" [ngClass]="{open: isOpen, closed: !isOpen}">
-    <div class="filters--header">
-        <mat-icon fontIcon="arrow_back_ios" (click)="closeFilters(true)"></mat-icon>
-    </div>
-
-    <div>
-        <div class="input-wrapper">
-            <mat-icon fontIcon="search" class="input-icon"></mat-icon>
-            <input placeholder="Search in quotes..." class="input-filter" [value]="quoteQuery()"
-                (input)="setTextFilter($any($event.target).value)" />
-            @if (quoteQuery().length) {
-            <mat-icon fontIcon="close" class="input-clear" (click)="clearTextFilter()"></mat-icon>
-            }
+<div class="filters--backdrop" [ngClass]="{ open: isOpen, closed: !isOpen }" (click)="closeFilters(true)">
+    <div class="filters--box" (click)="$event.stopPropagation()">
+        <div class="filters--header">
+            <div class="filters--title">Filters</div>
+            <button type="button" class="close-button" aria-label="Close filters" (click)="closeFilters(true)">
+                <mat-icon fontIcon="close"></mat-icon>
+            </button>
         </div>
-    </div>
 
-    <div class="author-filter--wrapper">
-        <h3>People</h3>
-        <div class="author-filter--container">
-            @for(author of authors(); track author){
-            <div class="author-filter--item" [class.selected]="isSelected(author.name)" (click)="toggleAuthor(author.name)">
-                <div>{{author.name}}</div>
+        <div class="filters--content">
+            <div class="input-wrapper">
+                <mat-icon fontIcon="search" class="input-icon"></mat-icon>
+                <input
+                    placeholder="Search in quotes..."
+                    class="input-filter"
+                    [value]="quoteQuery()"
+                    (input)="setTextFilter($any($event.target).value)"
+                />
+                @if (quoteQuery().length) {
+                <button type="button" class="input-clear" aria-label="Clear search" (click)="clearTextFilter()">
+                    <mat-icon fontIcon="close"></mat-icon>
+                </button>
+                }
             </div>
-            }
+
+            <div class="author-filter--wrapper">
+                <h3>People</h3>
+                <div class="author-filter--container">
+                    @for(author of authors(); track author){
+                    <button
+                        type="button"
+                        class="author-filter--item"
+                        [class.selected]="isSelected(author.name)"
+                        (click)="toggleAuthor(author.name)"
+                    >
+                        {{ author.name }}
+                    </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="filters--footer">
+            <button class="secondary-button" type="button" (click)="resetFilters()">Reset</button>
+            <button class="apply-button" type="button" (click)="closeFilters()">Apply</button>
         </div>
     </div>
-
-    <button class="apply-button" (click)="closeFilters()">Save</button>
 </div>

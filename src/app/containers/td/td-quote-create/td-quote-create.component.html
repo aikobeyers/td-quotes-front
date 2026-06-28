@@ -1,28 +1,38 @@
-<div class="create--wrapper" [ngClass]="{open: isOpen, closed: !isOpen}">
-    <div class="create--header">
-        <mat-icon fontIcon="arrow_back_ios" (click)="closeCreate(true)"></mat-icon>
-    </div>
+<div class="create--backdrop" [ngClass]="{ open: isOpen, closed: !isOpen }" (click)="closeCreate(true)">
+    <div class="create--box" (click)="$event.stopPropagation()">
+        <div class="create--header">
+            <div class="create--title">Create Quote</div>
+            <button type="button" class="close-button" aria-label="Close create quote" (click)="closeCreate(true)">
+                <mat-icon fontIcon="close"></mat-icon>
+            </button>
+        </div>
 
-    <form [formGroup]="quoteForm" class="quote-form">
-        <div>
+        <form [formGroup]="quoteForm" class="quote-form">
             <div class="input-wrapper">
                 <mat-icon fontIcon="format_quote" class="input-icon"></mat-icon>
                 <textarea placeholder="Enter quote..." class="input-filter" formControlName="quote"></textarea>
             </div>
-        </div>
 
-        <div class="author-filter--wrapper">
-            <h3>By</h3>
-            <div class="author-filter--container">
-                @for(author of authors(); track author){
-                <div class="author-filter--item" [class.selected]="isSelectedAuthor(author._id)" (click)="selectAuthor(author._id)">
-                    <div>{{author.name}}</div>
+            <div class="author-filter--wrapper">
+                <h3>By</h3>
+                <div class="author-filter--container">
+                    @for(author of authors(); track author){
+                    <button
+                        type="button"
+                        class="author-filter--item"
+                        [class.selected]="isSelectedAuthor(author._id)"
+                        (click)="selectAuthor(author._id)"
+                    >
+                        {{ author.name }}
+                    </button>
+                    }
                 </div>
-                }
+                <input placeholder="New person..." class="author-input" formControlName="newAuthor" />
             </div>
-            <input placeholder="New person..." class="author-input" formControlName="newAuthor" />
-        </div>
-    </form>
+        </form>
 
-    <button class="apply-button" (click)="saveQuote()">Save</button>
+        <div class="create--footer">
+            <button class="apply-button" type="button" (click)="saveQuote()">Save Quote</button>
+        </div>
+    </div>
 </div>
