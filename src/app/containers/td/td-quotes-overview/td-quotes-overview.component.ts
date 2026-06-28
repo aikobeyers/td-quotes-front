@@ -62,6 +62,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly favoriteStorageKey = 'td_quotes_favorites';
 
   public isLoading = signal(false);
+  public isSendingTestPush = signal(false);
   public hasScrolled = signal(false);
   public activeTab = signal<'all' | 'recent' | 'favorites'>('all');
   public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
@@ -116,6 +117,25 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public openLeaderboard(): void {
     this.leaderboardComponent.openLeaderboard();
+  }
+
+  public sendTestPushNotification(): void {
+    if (this.isSendingTestPush()) {
+      return;
+    }
+
+    this.isSendingTestPush.set(true);
+    this.tdQuotesService
+      .sendNewQuotePushNotification()
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.isSendingTestPush.set(false);
+        },
+        error: () => {
+          this.isSendingTestPush.set(false);
+        },
+      });
   }
 
   public getQuotes(skip = false): void {

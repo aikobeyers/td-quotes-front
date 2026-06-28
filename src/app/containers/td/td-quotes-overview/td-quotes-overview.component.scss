@@ -63,6 +63,15 @@
                     height: 28px;
                 }
             }
+
+            .icon-button--test-push {
+                border-color: #d9d4c8;
+                background: #f5f2ea;
+            }
+
+            .icon-button:disabled {
+                opacity: 0.7;
+            }
         }
     }
 

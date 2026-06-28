@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
-import { firstValueFrom, take } from 'rxjs';
+import { firstValueFrom, fromEvent, merge, take } from 'rxjs';
+import { filter, startWith } from 'rxjs/operators';
 import { TdQuotesService } from './td-quotes.service';
 
 @Injectable({
@@ -16,6 +17,7 @@ export class PushNotificationsService {
   public canRequestPermission = signal(false);
   public permissionDenied = signal(false);
   public subscriptionInProgress = signal(false);
+  private ensureSubscriptionInProgress = false;
 
   public initPushNotifications(): void {
     if (this.initialized) {
@@ -31,15 +33,22 @@ export class PushNotificationsService {
 
     if (Notification.permission === 'granted') {
       void this.ensureSubscription();
-      return;
-    }
-
-    if (Notification.permission === 'default') {
+    } else if (Notification.permission === 'default') {
       this.canRequestPermission.set(true);
-      return;
+    } else {
+      this.permissionDenied.set(true);
     }
 
-    this.permissionDenied.set(true);
+    merge(
+      fromEvent(document, 'visibilitychange').pipe(filter(() => document.visibilityState === 'visible')),
+      fromEvent(window, 'focus'),
+    )
+      .pipe(startWith(null))
+      .subscribe(() => {
+        if (Notification.permission === 'granted') {
+          void this.ensureSubscription();
+        }
+      });
   }
 
   public async requestPermissionFromUserGesture(): Promise<void> {
@@ -67,9 +76,15 @@ export class PushNotificationsService {
   }
 
   private async ensureSubscription(): Promise<void> {
+    if (this.ensureSubscriptionInProgress) {
+      return;
+    }
+
     if (Notification.permission !== 'granted') {
       return;
     }
+
+    this.ensureSubscriptionInProgress = true;
 
     try {
       const currentSubscription = await firstValueFrom(this.swPush.subscription.pipe(take(1)));
@@ -91,8 +106,10 @@ export class PushNotificationsService {
 
       this.canRequestPermission.set(false);
       this.permissionDenied.set(false);
-    } catch {
-      // No-op for now; push setup should not block app usage.
+    } catch (error) {
+      console.error('Push subscription setup failed:', error);
+    } finally {
+      this.ensureSubscriptionInProgress = false;
     }
   }
 }
