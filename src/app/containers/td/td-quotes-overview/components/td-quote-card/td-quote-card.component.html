@@ -1,14 +1,21 @@
 @if (isSkeleton()) {
 <div class="td-quote-card--container">
     <div class="quote-mark">&#8220;</div>
-    <app-skeleton [width]="85" [height]="20" [borderRadius]="6" />
-    <app-skeleton [width]="74" [height]="20" [borderRadius]="6" />
+    <div class="quote-content-skeleton">
+        <app-skeleton [width]="84" [height]="18" [borderRadius]="6" />
+        <app-skeleton [width]="72" [height]="18" [borderRadius]="6" />
+    </div>
     <div class="card-footer">
-        <app-skeleton [width]="38" [height]="38" [borderRadius]="999" />
-        <div class="author-meta-skeleton">
-            <app-skeleton [width]="35" [height]="18" [borderRadius]="6" />
-            <app-skeleton [width]="26" [height]="12" [borderRadius]="6" />
+        <div class="quote--author-block">
+            <div class="author-icon">
+                <span class="material-icons">person_outline</span>
+            </div>
+            <div class="author-meta-skeleton">
+                <app-skeleton [width]="42" [height]="12" [borderRadius]="6" />
+                <app-skeleton [width]="28" [height]="10" [borderRadius]="6" />
+            </div>
         </div>
+        <app-skeleton [width]="8" [height]="18" [borderRadius]="999" />
     </div>
 </div>
 } @else {
