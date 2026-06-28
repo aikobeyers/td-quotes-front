@@ -1,11 +1,33 @@
 @if (isSkeleton()) {
 <div class="td-quote-card--container">
-    <app-skeleton [width]="80" [height]="19" [borderRadius]="5" />
-    <app-skeleton [width]="15" [height]="'16.5'" [borderRadius]="5" />
+    <div class="quote-mark">&#8220;</div>
+    <app-skeleton [width]="85" [height]="20" [borderRadius]="6" />
+    <app-skeleton [width]="74" [height]="20" [borderRadius]="6" />
+    <div class="card-footer">
+        <app-skeleton [width]="38" [height]="38" [borderRadius]="999" />
+        <app-skeleton [width]="35" [height]="18" [borderRadius]="6" />
+    </div>
 </div>
 } @else {
 <div class="td-quote-card--container">
-    <span class="quote--value">"{{ tdQuote()?.value }}"</span>
-    <span class="quote--by">{{ tdQuote()?.by?.name }}</span>
+    <div class="quote-mark">&#8220;</div>
+    <span class="quote--value">{{ tdQuote()?.value }}</span>
+    <div class="card-footer">
+        <div class="quote--author-block">
+            <div class="author-icon">
+                <span class="material-icons">person_outline</span>
+            </div>
+            <span class="quote--by">{{ tdQuote()?.by?.name }}</span>
+        </div>
+        <button
+            class="favorite-button"
+            [class.active]="isFavorite()"
+            type="button"
+            [attr.aria-label]="isFavorite() ? 'Remove from favorites' : 'Add to favorites'"
+            (click)="toggleFavorite()"
+        >
+            <span class="material-icons">{{ isFavorite() ? 'star' : 'star_outline' }}</span>
+        </button>
+    </div>
 </div>
 }

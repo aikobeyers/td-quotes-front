@@ -5,6 +5,7 @@ import {
   signal,
   ViewChild,
   ChangeDetectionStrategy,
+  computed,
 } from '@angular/core';
 import { TdQuotesService } from '../../../services/td-quotes.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -61,6 +62,27 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
+  public activeTab = signal<'all' | 'recent' | 'favorites'>('all');
+  public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
+  public displayedQuotes = computed(() => {
+    const quoteList = this.quotes();
+    const tab = this.activeTab();
+
+    if (tab === 'favorites') {
+      const favorites = new Set(this.favoriteQuoteIds());
+      return quoteList.filter((quote) => favorites.has(quote._id));
+    }
+
+    if (tab === 'recent') {
+      return [...quoteList].sort((a, b) => {
+        return this.parseDate(b.date) - this.parseDate(a.date);
+      });
+    }
+
+    return quoteList;
+  });
+
+  private readonly favoriteStorageKey = 'td_quotes_favorites';
 
   public ngOnInit(): void {
     this.titleService.setTitle('TD Quotes');
@@ -105,6 +127,55 @@ export class TdQuotesOverviewComponent implements OnInit {
           this.isLoading.set(false);
         });
     }
+  }
+
+  public setActiveTab(tab: 'all' | 'recent' | 'favorites'): void {
+    this.activeTab.set(tab);
+  }
+
+  public isFavorite(quoteId: string): boolean {
+    return this.favoriteQuoteIds().includes(quoteId);
+  }
+
+  public toggleFavorite(quoteId: string): void {
+    const currentFavorites = this.favoriteQuoteIds();
+    const favorites = currentFavorites.includes(quoteId)
+      ? currentFavorites.filter((id) => id !== quoteId)
+      : [...currentFavorites, quoteId];
+
+    this.favoriteQuoteIds.set(favorites);
+    this.persistFavorites(favorites);
+  }
+
+  private loadFavorites(): string[] {
+    if (typeof window === 'undefined') {
+      return [];
+    }
+
+    const storedValue = localStorage.getItem(this.favoriteStorageKey);
+    if (!storedValue) {
+      return [];
+    }
+
+    try {
+      const parsedValue = JSON.parse(storedValue);
+      return Array.isArray(parsedValue) ? parsedValue : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private persistFavorites(favorites: string[]): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem(this.favoriteStorageKey, JSON.stringify(favorites));
+  }
+
+  private parseDate(date: string): number {
+    const [day, month, year] = date.split('/').map(Number);
+    return new Date(year, (month || 1) - 1, day || 1).getTime();
   }
 
   public createQuote(quoteData: {
