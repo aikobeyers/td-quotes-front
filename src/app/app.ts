@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { PushNotificationsService } from './services/push-notifications.service';
 
 @Component({
   selector: 'app-root',
@@ -8,4 +9,10 @@ import { RouterOutlet } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app.scss',
 })
-export class App {}
+export class App implements OnInit {
+  private readonly pushNotificationsService = inject(PushNotificationsService);
+
+  public ngOnInit(): void {
+    this.pushNotificationsService.initPushNotifications();
+  }
+}

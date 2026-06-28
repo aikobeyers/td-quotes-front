@@ -229,6 +229,15 @@ export class TdQuotesOverviewComponent implements OnInit {
         if (res.by && quoteData.newAuthor) {
           this.store.addAuthor(res.by);
         }
+
+        this.tdQuotesService
+          .sendNewQuotePushNotification()
+          .pipe(take(1))
+          .subscribe({
+            error: () => {
+              // No-op so quote creation never fails due to notification issues.
+            },
+          });
       });
   }
 }

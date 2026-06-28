@@ -47,4 +47,19 @@ export class TdQuotesService {
   public updateAuthorScore(authorId: string): Observable<TdQuoteAuthorWithId> {
     return this.http.put<TdQuoteAuthorWithId>(`${BASE_URL}/tdquotes/authors/${authorId}/score`, {});
   }
+
+  public getPushPublicKey(): Observable<{ publicKey: string }> {
+    return this.http.get<{ publicKey: string }>(`${BASE_URL}/push/public-key`);
+  }
+
+  public registerPushSubscription(subscription: PushSubscriptionJSON): Observable<void> {
+    return this.http.post<void>(`${BASE_URL}/push/subscribe`, { subscription });
+  }
+
+  public sendNewQuotePushNotification(): Observable<void> {
+    return this.http.post<void>(`${BASE_URL}/push/broadcast`, {
+      title: 'TD Quotes',
+      body: 'Someone added a new quote!',
+    });
+  }
 }
