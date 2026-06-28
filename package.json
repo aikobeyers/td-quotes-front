@@ -22,6 +22,7 @@
     "@angular/router": "^22.0.4",
     "@angular/service-worker": "^22.0.4",
     "@ngrx/signals": "^21.0.1",
+    "netlify-cli": "^26.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
