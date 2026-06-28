@@ -2,7 +2,7 @@
 [build]
   command = "npm run build"
   functions = "netlify/functions"
-  publish = "dist/td-quotes-front"
+  publish = "dist/td-quotes-front/browser"
 
 [build.environment]
   NODE_VERSION = "24.15.0"
