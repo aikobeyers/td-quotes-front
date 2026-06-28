@@ -59,6 +59,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly store = inject(FiltersStore);
 
   public quotes = this.store.quotes;
+  private readonly favoriteStorageKey = 'td_quotes_favorites';
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
@@ -74,15 +75,16 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
 
     if (tab === 'recent') {
-      return [...quoteList].sort((a, b) => {
-        return this.parseDate(b.date) - this.parseDate(a.date);
-      });
+      return quoteList
+        .filter((quote) => this.parseDate(quote.date) !== null)
+        .sort((a, b) => {
+          return (this.parseDate(b.date) ?? 0) - (this.parseDate(a.date) ?? 0);
+        })
+        .slice(0, 10);
     }
 
     return quoteList;
   });
-
-  private readonly favoriteStorageKey = 'td_quotes_favorites';
 
   public ngOnInit(): void {
     this.titleService.setTitle('TD Quotes');
@@ -148,11 +150,11 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   private loadFavorites(): string[] {
-    if (typeof window === 'undefined') {
+    if (typeof document === 'undefined') {
       return [];
     }
 
-    const storedValue = localStorage.getItem(this.favoriteStorageKey);
+    const storedValue = this.readCookie(this.favoriteStorageKey);
     if (!storedValue) {
       return [];
     }
@@ -166,16 +168,51 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   private persistFavorites(favorites: string[]): void {
-    if (typeof window === 'undefined') {
+    if (typeof document === 'undefined') {
       return;
     }
 
-    localStorage.setItem(this.favoriteStorageKey, JSON.stringify(favorites));
+    const encodedValue = encodeURIComponent(JSON.stringify(favorites));
+    const maxAgeSeconds = 60 * 60 * 24 * 365;
+    document.cookie = `${this.favoriteStorageKey}=${encodedValue}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
   }
 
-  private parseDate(date: string): number {
-    const [day, month, year] = date.split('/').map(Number);
-    return new Date(year, (month || 1) - 1, day || 1).getTime();
+  private readCookie(name: string): string | null {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const prefix = `${name}=`;
+    const parts = document.cookie.split(';');
+
+    for (const part of parts) {
+      const cookie = part.trim();
+      if (cookie.startsWith(prefix)) {
+        const value = cookie.slice(prefix.length);
+        return decodeURIComponent(value);
+      }
+    }
+
+    return null;
+  }
+
+  private parseDate(date: string): number | null {
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(date);
+    if (!match) {
+      return null;
+    }
+
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
+
+    const parsedDate = new Date(year, month - 1, day);
+    const isSameDate =
+      parsedDate.getFullYear() === year &&
+      parsedDate.getMonth() === month - 1 &&
+      parsedDate.getDate() === day;
+
+    return isSameDate ? parsedDate.getTime() : null;
   }
 
   public createQuote(quoteData: {

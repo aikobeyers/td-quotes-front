@@ -37,6 +37,13 @@
         align-items: center;
         gap: 10px;
 
+        .author-meta {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2px;
+        }
+
         .author-icon {
             width: 30px;
             height: 30px;
@@ -53,10 +60,23 @@
         }
     }
 
+    .author-meta-skeleton {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
     .quote--by {
         font-size: 16px;
         color: #77757b;
         line-height: 1;
+    }
+
+    .quote--date {
+        font-size: 11px;
+        color: #a4a0a0;
+        line-height: 1.1;
+        letter-spacing: 0.01em;
     }
 
     .favorite-button {
@@ -92,6 +112,10 @@
 
         .quote--by {
             font-size: 13px;
+        }
+
+        .quote--date {
+            font-size: 10px;
         }
 
         .favorite-button .material-icons {

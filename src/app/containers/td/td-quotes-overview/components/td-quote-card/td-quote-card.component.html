@@ -5,7 +5,10 @@
     <app-skeleton [width]="74" [height]="20" [borderRadius]="6" />
     <div class="card-footer">
         <app-skeleton [width]="38" [height]="38" [borderRadius]="999" />
-        <app-skeleton [width]="35" [height]="18" [borderRadius]="6" />
+        <div class="author-meta-skeleton">
+            <app-skeleton [width]="35" [height]="18" [borderRadius]="6" />
+            <app-skeleton [width]="26" [height]="12" [borderRadius]="6" />
+        </div>
     </div>
 </div>
 } @else {
@@ -17,7 +20,12 @@
             <div class="author-icon">
                 <span class="material-icons">person_outline</span>
             </div>
-            <span class="quote--by">{{ tdQuote()?.by?.name }}</span>
+            <div class="author-meta">
+                <span class="quote--by">{{ tdQuote()?.by?.name }}</span>
+                @if (tdQuote()?.date) {
+                <span class="quote--date">{{ tdQuote()?.date }}</span>
+                }
+            </div>
         </div>
         <button
             class="favorite-button"
