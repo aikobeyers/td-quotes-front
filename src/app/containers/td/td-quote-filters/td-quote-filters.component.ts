@@ -1,13 +1,14 @@
-import { Component, inject, output, OnDestroy } from '@angular/core';
+import { Component, inject, output, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FiltersStore } from '../../../stores/filters.store';
 import { NgClass } from '@angular/common';
-import { MatIcon } from "@angular/material/icon";
+import { MatIcon } from '@angular/material/icon';
 
 @Component({
   selector: 'app-td-quote-filters',
   imports: [NgClass, MatIcon],
   templateUrl: './td-quote-filters.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './td-quote-filters.component.scss',
 })
 export class TdQuoteFiltersComponent implements OnDestroy {
@@ -19,12 +20,12 @@ export class TdQuoteFiltersComponent implements OnDestroy {
 
   public isOpen = false;
 
-  public filterSnapshot? :{ by: string[]; quoteQuery: string };
+  public filterSnapshot?: { by: string[]; quoteQuery: string };
 
   public closeFiltersEmitter = output<boolean>();
 
-  toggleAuthor(author: string): void {    
-    this.store.toggleAuthor(author);    
+  toggleAuthor(author: string): void {
+    this.store.toggleAuthor(author);
   }
 
   setTextFilter(filter: string): void {
@@ -43,9 +44,8 @@ export class TdQuoteFiltersComponent implements OnDestroy {
     this.store.resetFilters();
   }
 
-  closeFilters (revert = false): void {
-    
-    if(revert && this.filterSnapshot) {
+  closeFilters(revert = false): void {
+    if (revert && this.filterSnapshot) {
       this.store.setFilters(this.filterSnapshot);
     }
     this.setOpen(false);
@@ -74,4 +74,3 @@ export class TdQuoteFiltersComponent implements OnDestroy {
     };
   }
 }
- 

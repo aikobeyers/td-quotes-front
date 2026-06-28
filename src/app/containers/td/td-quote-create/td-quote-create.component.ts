@@ -1,13 +1,14 @@
-import { Component, inject, output, OnDestroy } from '@angular/core';
+import { Component, inject, output, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { DOCUMENT, NgClass } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { FiltersStore } from '../../../stores/filters.store';
-import { MatIcon } from "@angular/material/icon";
+import { MatIcon } from '@angular/material/icon';
 
 @Component({
   selector: 'app-td-quote-create',
   imports: [NgClass, MatIcon, ReactiveFormsModule],
   templateUrl: './td-quote-create.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './td-quote-create.component.scss',
 })
 export class TdQuoteCreateComponent implements OnDestroy {
@@ -19,13 +20,18 @@ export class TdQuoteCreateComponent implements OnDestroy {
   public quoteForm = new FormGroup({
     quote: new FormControl(''),
     by: new FormControl(''),
-    newAuthor: new FormControl('')
+    newAuthor: new FormControl(''),
   });
 
   public isOpen = false;
 
   public closeCreateEmitter = output<boolean>();
-  public createQuoteEmitter = output<{value: string, date: string, by: string | undefined | null, newAuthor: string| undefined | null}>();
+  public createQuoteEmitter = output<{
+    value: string;
+    date: string;
+    by: string | undefined | null;
+    newAuthor: string | undefined | null;
+  }>();
 
   selectAuthor(author: string): void {
     if (this.isSelectedAuthor(author)) {
@@ -56,7 +62,7 @@ export class TdQuoteCreateComponent implements OnDestroy {
       value: formValue.quote!,
       by: formValue.by,
       newAuthor: formValue.newAuthor,
-      date: dateString
+      date: dateString,
     };
     this.createQuoteEmitter.emit(quoteData);
 
@@ -71,7 +77,6 @@ export class TdQuoteCreateComponent implements OnDestroy {
     }
     this.closeCreateEmitter.emit(cancel);
     this.quoteForm.reset();
-
   }
 
   openCreate(): void {

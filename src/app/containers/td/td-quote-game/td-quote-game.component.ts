@@ -1,9 +1,17 @@
-import { Component, inject, output, OnDestroy, signal, computed } from '@angular/core';
+import {
+  Component,
+  inject,
+  output,
+  OnDestroy,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { DOCUMENT, NgClass } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { TdQuotesService } from '../../../services/td-quotes.service';
 import { take } from 'rxjs';
-import { SkeletonComponent } from "../../../components/skeleton/skeleton.component";
+import { SkeletonComponent } from '../../../components/skeleton/skeleton.component';
 import { TdQuoteWithId } from '../../../models/TdQuote';
 import { FiltersStore } from '../../../stores/filters.store';
 
@@ -11,6 +19,7 @@ import { FiltersStore } from '../../../stores/filters.store';
   selector: 'app-td-quote-game',
   imports: [NgClass, MatIcon, SkeletonComponent],
   templateUrl: './td-quote-game.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './td-quote-game.component.scss',
 })
 export class TdQuoteGameComponent implements OnDestroy {
@@ -23,12 +32,12 @@ export class TdQuoteGameComponent implements OnDestroy {
   public isUpdatingScore = signal(false);
 
   public randomQuote = signal<TdQuoteWithId | null>(null);
-  public gameStage = signal<'quote' | 'authors' | 'correct' | 'incorrect' | 'guesser' | 'leaderboard'>('quote');
+  public gameStage = signal<
+    'quote' | 'authors' | 'correct' | 'incorrect' | 'guesser' | 'leaderboard'
+  >('quote');
   public authors = this.store.authors;
   public topThree = computed(() => {
-    return [...this.authors()]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
+    return [...this.authors()].sort((a, b) => b.score - a.score).slice(0, 3);
   });
   public selectedAuthorId = signal<string | null>(null);
   public selectedGuesserId = signal<string | null>(null);
@@ -40,7 +49,8 @@ export class TdQuoteGameComponent implements OnDestroy {
     this.gameStage.set('quote');
     this.setOpen(true);
 
-    this.tdQuotesService.getRandomQuote()
+    this.tdQuotesService
+      .getRandomQuote()
       .pipe(take(1))
       .subscribe((quote) => {
         this.isLoading.set(false);
@@ -89,13 +99,16 @@ export class TdQuoteGameComponent implements OnDestroy {
         return;
       }
       this.isUpdatingScore.set(true);
-      this.tdQuotesService.updateAuthorScore(guesserId).pipe(take(1)).subscribe((updatedAuthor) => {
-        this.store.updateAuthor(updatedAuthor);
-        setTimeout(() => {
-          this.gameStage.set('leaderboard');
-          this.isUpdatingScore.set(false);
-        }, 300);
-      });
+      this.tdQuotesService
+        .updateAuthorScore(guesserId)
+        .pipe(take(1))
+        .subscribe((updatedAuthor) => {
+          this.store.updateAuthor(updatedAuthor);
+          setTimeout(() => {
+            this.gameStage.set('leaderboard');
+            this.isUpdatingScore.set(false);
+          }, 300);
+        });
     }
   }
 

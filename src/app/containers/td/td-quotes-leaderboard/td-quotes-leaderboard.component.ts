@@ -1,4 +1,11 @@
-import { Component, inject, output, OnDestroy, computed } from '@angular/core';
+import {
+  Component,
+  inject,
+  output,
+  OnDestroy,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { DOCUMENT, NgClass } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { FiltersStore } from '../../../stores/filters.store';
@@ -7,6 +14,7 @@ import { FiltersStore } from '../../../stores/filters.store';
   selector: 'app-td-quotes-leaderboard',
   imports: [NgClass, MatIcon],
   templateUrl: './td-quotes-leaderboard.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './td-quotes-leaderboard.component.scss',
 })
 export class TdQuotesLeaderboardComponent implements OnDestroy {
@@ -15,8 +23,7 @@ export class TdQuotesLeaderboardComponent implements OnDestroy {
 
   public isOpen = false;
   public rankedAuthors = computed(() => {
-    return [...this.store.authors()]
-      .sort((a, b) => b.score - a.score);
+    return [...this.store.authors()].sort((a, b) => b.score - a.score);
   });
 
   public closeLeaderboardEmitter = output<void>();

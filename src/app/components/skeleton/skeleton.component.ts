@@ -1,14 +1,13 @@
-import {Component, input} from '@angular/core';
-import {NgStyle} from "@angular/common";
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
+import { NgStyle } from '@angular/common';
 
 @Component({
   selector: 'app-skeleton',
-  imports: [
-    NgStyle
-  ],
+  imports: [NgStyle],
   standalone: true,
   templateUrl: './skeleton.component.html',
-  styleUrl: './skeleton.component.scss'
+  changeDetection: ChangeDetectionStrategy.Eager,
+  styleUrl: './skeleton.component.scss',
 })
 export class SkeletonComponent {
   width = input<number | string>();
