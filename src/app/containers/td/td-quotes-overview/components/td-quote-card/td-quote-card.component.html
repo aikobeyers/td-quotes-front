@@ -1,0 +1,11 @@
+@if (isSkeleton()) {
+<div class="td-quote-card--container">
+    <app-skeleton [width]="80" [height]="19" [borderRadius]="5" />
+    <app-skeleton [width]="15" [height]="'16.5'" [borderRadius]="5" />
+</div>
+} @else {
+<div class="td-quote-card--container">
+    <span class="quote--value">"{{ tdQuote()?.value }}"</span>
+    <span class="quote--by">{{ tdQuote()?.by?.name }}</span>
+</div>
+}

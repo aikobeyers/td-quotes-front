@@ -1,0 +1,129 @@
+.create--wrapper {
+    position: fixed;
+    padding: 16px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    transform: translateY(100%);
+
+    background-color: #ffffff;
+    z-index: 1000;
+    overflow-y: auto;
+
+    transition: transform 0.3s ease-in-out;
+
+    display: flex;
+    flex-direction: column;
+    row-gap: 28px;
+
+    &.closed {
+        transform: translateY(100%);
+        pointer-events: none;
+    }
+
+    &.open {
+        transform: translateY(33px);
+        pointer-events: auto;
+    }
+
+    .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            color: #999;
+            pointer-events: none;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+        }
+    }
+
+    .input-filter {
+        border-radius: 16px;
+        padding: 8px 12px 8px 36px;
+        border: 1px solid lightgray;
+        width: 100%;
+        min-height: 100px;
+        font-family: "Avenir", sans-serif;
+        font-size: 14px;
+        resize: vertical;
+
+        &:focus-visible {
+            outline: none;
+        }
+    }
+
+    .author-filter--wrapper {
+        display: flex;
+        flex-direction: column;
+        row-gap: 16px;
+
+        .author-filter--container {
+            display: flex;
+            gap: 16px 24px;
+            flex-wrap: wrap;
+
+            .author-filter--item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 4px 16px;
+                border-radius: 100px;
+                background-color: #ffffff;
+                box-shadow: 0 3px 7px #0000001f;
+                cursor: pointer;
+
+                &:active {
+                    background-color: #e0e0e0;
+                }
+
+                &.selected {
+                    border: 1px solid #7e7e7e;
+                    font-weight: 500;
+                }
+            }
+        }
+
+        .author-input {
+            border-radius: 100px;
+            padding: 8px 16px;
+            border: 1px solid lightgray;
+            width: calc(100% - 0px);
+            box-sizing: border-box;
+            font-size: 14px;
+
+            &:focus-visible {
+                outline: none;
+            }
+        }
+    }
+
+    .apply-button {
+        margin-top: auto;
+        margin-bottom: 48px;
+
+        width: 100%;
+
+        align-self: center;
+
+        border-radius: 100px;
+        padding: 8px 36px;
+        border: 1px solid lightgray;
+
+        color: rgb(53, 53, 53)
+    }
+}
+
+
+.quote-form {
+    display: flex;
+    flex-direction: column;
+    row-gap: 24px;
+}

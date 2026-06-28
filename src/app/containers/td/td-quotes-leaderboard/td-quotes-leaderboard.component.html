@@ -1,0 +1,19 @@
+<div class="leaderboard--backdrop" [ngClass]="{open: isOpen, closed: !isOpen}" (click)="closeLeaderboard()">
+    <div class="leaderboard--box" (click)="$event.stopPropagation()">
+        <div class="leaderboard--header">
+            <div class="leaderboard--header-title">Leaderboard</div>
+            <mat-icon fontIcon="close" (click)="closeLeaderboard()"></mat-icon>
+        </div>
+        <div class="leaderboard--content">
+            <div class="leaderboard--list">
+                @for(author of rankedAuthors(); track author._id; let idx = $index) {
+                <div class="leaderboard--item" [ngClass]="{first: idx === 0, second: idx === 1, third: idx === 2}">
+                    <div class="leaderboard--rank">{{ idx + 1 }}</div>
+                    <div class="leaderboard--name">{{ author.name }}</div>
+                    <div class="leaderboard--score">{{ author.score }}</div>
+                </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

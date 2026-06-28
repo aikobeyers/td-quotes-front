@@ -1,0 +1,30 @@
+.td-quotes-overview--wrapper{
+    position: relative;
+            .td-quotes-overview--header{
+        padding: 16px;;
+
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .header--title{
+            display: flex;
+            flex:1;
+            margin-left: 24px;
+
+            justify-content: center;
+            align-items: center;
+        }
+
+        .add-icon {
+            font-size: 32px;
+            width: 32px;
+            height: 32px;
+        }
+
+    }   
+    .td-quotes-overview--container{
+        padding: 24px 16px;
+    }
+}
+

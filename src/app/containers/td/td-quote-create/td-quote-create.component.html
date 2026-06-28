@@ -1,0 +1,28 @@
+<div class="create--wrapper" [ngClass]="{open: isOpen, closed: !isOpen}">
+    <div class="create--header">
+        <mat-icon fontIcon="arrow_back_ios" (click)="closeCreate(true)"></mat-icon>
+    </div>
+
+    <form [formGroup]="quoteForm" class="quote-form">
+        <div>
+            <div class="input-wrapper">
+                <mat-icon fontIcon="format_quote" class="input-icon"></mat-icon>
+                <textarea placeholder="Enter quote..." class="input-filter" formControlName="quote"></textarea>
+            </div>
+        </div>
+
+        <div class="author-filter--wrapper">
+            <h3>By</h3>
+            <div class="author-filter--container">
+                @for(author of authors(); track author){
+                <div class="author-filter--item" [class.selected]="isSelectedAuthor(author._id)" (click)="selectAuthor(author._id)">
+                    <div>{{author.name}}</div>
+                </div>
+                }
+            </div>
+            <input placeholder="New person..." class="author-input" formControlName="newAuthor" />
+        </div>
+    </form>
+
+    <button class="apply-button" (click)="saveQuote()">Save</button>
+</div>

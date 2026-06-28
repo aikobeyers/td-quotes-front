@@ -1,0 +1,32 @@
+<div class="td-quotes-overview--wrapper">
+    <div class="td-quotes-overview--header" [ngClass]="{scrolled: hasScrolled()}">
+        <mat-icon fontIcon="gamepad" class="gamepad-icon" (click)="openGame()"></mat-icon>
+        <mat-icon fontIcon="leaderboard" class="leaderboard-icon" (click)="openLeaderboard()"></mat-icon>
+
+        <div class="header--title">TD Quotes</div>
+        <mat-icon fontIcon="add_2" class="add-icon" (click)="openCreate()"></mat-icon>
+        <mat-icon fontIcon="filter_alt" class="filter-icon" (click)="openFilters()"></mat-icon>
+    </div>
+    <div class="td-quotes-overview--container" #container (scroll)="onScroll($event)">
+        @if(isLoading()) {
+        @for (i of [].constructor(10); track $index; let last = $last) {
+        <div [ngStyle]="{ 'margin-bottom.px': last ? 0 : 12 }">
+            <td-quote-card class="td-quotes-overview--card" [isSkeleton]="true" />
+        </div>
+        }
+
+        } @else {
+        @for(tdQuote of quotes(); track tdQuote; let last = $last){
+        <div [ngStyle]="{ 'margin-bottom.px': last ? 0 : 12 }">
+            <td-quote-card class="td-quotes-overview--card" [tdQuote]="tdQuote" />
+        </div>
+        }
+        }
+
+    </div>
+</div>
+<app-td-quote-filters #filters (closeFiltersEmitter)="getQuotes($event)"></app-td-quote-filters>
+<app-td-quote-create #create (closeCreateEmitter)="getQuotes($event)"
+    (createQuoteEmitter)="createQuote($event)"></app-td-quote-create>
+<app-td-quote-game #game></app-td-quote-game>
+<app-td-quotes-leaderboard #leaderboard></app-td-quotes-leaderboard>

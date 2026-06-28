@@ -1,0 +1,68 @@
+<div class="game--backdrop" [ngClass]="{open: isOpen, closed: !isOpen}" (click)="closeGame()">
+    <div class="game--box" [ngClass]="{authors: gameStage() === 'authors' || gameStage() === 'guesser' || gameStage() === 'leaderboard'}" (click)="$event.stopPropagation()">
+        <div class="game--header">
+            @if(gameStage() === 'leaderboard') {
+                <div class="game--header-title">Top 3 Leaderboard</div>
+            } @else {
+                <div class="game--header-quote" [ngClass]="{visible: gameStage() !== 'quote'}">"{{ randomQuote()?.value }}"</div>
+            }
+            <mat-icon fontIcon="close" (click)="closeGame()"></mat-icon>
+        </div>
+        <div class="game--content">
+            @if(gameStage() === 'quote') {
+                @if(isLoading()) {
+                <app-skeleton [width]="80" [height]="19" [borderRadius]="5" />
+                } @else {
+                <div class="game-content" [ngClass]="{hidden: gameStage() === 'authors'}">"{{ randomQuote()?.value }}"</div>
+                <div class="game--next-row">
+                    <mat-icon fontIcon="east" class="game--next-icon" (click)="showAuthors()"></mat-icon>
+                </div>
+                }
+            } @else if(gameStage() === 'authors') {
+                <div class="game--authors-container">
+                    @for(author of authors(); track author) {
+                    <div class="game--author-item" (click)="selectAuthor(author._id)">
+                        <div>{{ author.name }}</div>
+                    </div>
+                    }
+                </div>
+                <div class="game--question-row">
+                    <span class="game--question-text">Choose who said it...</span>
+                    <mat-icon fontIcon="check" class="game--question-icon" [ngClass]="{disabled: !selectedAuthorId()}" (click)="submitSelection()"></mat-icon>
+                </div>
+            } @else if(gameStage() === 'correct') {
+                <div class="game--correct">Correct!</div>
+            } @else if(gameStage() === 'incorrect') {
+                <div class="game--incorrect">Incorrect</div>
+            } @else if(gameStage() === 'guesser') {
+                <div class="game--authors-container">
+                    @for(author of authors(); track author) {
+                    <div class="game--author-item" (click)="selectAuthor(author._id)">
+                        <div>{{ author.name }}</div>
+                    </div>
+                    }
+                </div>
+                <div class="game--question-row">
+                    <span class="game--question-text">Choose who guessed it...</span>
+                    @if(isUpdatingScore()) {
+                        <mat-icon fontIcon="autorenew" class="game--question-icon game--spinner"></mat-icon>
+                    } @else {
+                        <mat-icon fontIcon="check" class="game--question-icon" [ngClass]="{disabled: !selectedGuesserId()}" (click)="submitSelection()"></mat-icon>
+                    }
+                </div>
+            } @else if(gameStage() === 'leaderboard') {
+                <div class="game--leaderboard">
+                    <div class="game--leaderboard-list">
+                        @for(author of topThree(); track author._id; let idx = $index) {
+                        <div class="game--leaderboard-item">
+                            <div class="game--leaderboard-rank">{{ idx + 1 }}</div>
+                            <div class="game--leaderboard-name">{{ author.name }}</div>
+                            <div class="game--leaderboard-score">{{ author.score }}</div>
+                        </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

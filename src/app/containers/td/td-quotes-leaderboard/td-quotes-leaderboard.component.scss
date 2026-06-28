@@ -1,0 +1,145 @@
+.leaderboard--backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+
+    &.open {
+        opacity: 1;
+        pointer-events: auto;
+
+        .leaderboard--box {
+            transform: scale(1);
+        }
+    }
+
+    &.closed {
+        opacity: 0;
+        pointer-events: none;
+
+        .leaderboard--box {
+            transform: scale(0);
+        }
+    }
+
+    .leaderboard--box {
+        width: calc(100vw - 32px);
+        max-width: calc(100vw - 32px);
+        max-height: 600px;
+        background-color: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        
+        display: flex;
+        flex-direction: column;
+        
+        transform: scale(0);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        .leaderboard--header {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+
+            .leaderboard--header-title {
+                flex: 1;
+                font-size: 16px;
+                font-weight: 600;
+                color: #333;
+                text-align: left;
+                padding-right: 12px;
+            }
+
+            mat-icon {
+                cursor: pointer;
+                color: #666;
+                flex-shrink: 0;
+                
+                &:hover {
+                    color: #333;
+                }
+            }
+        }
+
+        .leaderboard--content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+
+            .leaderboard--list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+
+                .leaderboard--item {
+                    display: flex;
+                    align-items: center;
+                    padding: 12px 16px;
+                    background-color: #f5f5f5;
+                    border-radius: 8px;
+                    gap: 16px;
+
+                    .leaderboard--rank {
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: #666;
+                        min-width: 32px;
+                        text-align: center;
+                    }
+
+                    .leaderboard--name {
+                        flex: 1;
+                        font-size: 16px;
+                        font-weight: 500;
+                        color: #333;
+                    }
+
+                    .leaderboard--score {
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: #2e7d32;
+                    }
+
+                    &.first {
+                        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+
+                        .leaderboard--rank {
+                            color: #b8860b;
+                        }
+                    }
+
+                    &.second {
+                        background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+
+                        .leaderboard--rank {
+                            color: #808080;
+                        }
+                    }
+
+                    &.third {
+                        background: linear-gradient(135deg, #cd7f32 0%, #e09856 100%);
+
+                        .leaderboard--rank {
+                            color: #8b5a2b;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

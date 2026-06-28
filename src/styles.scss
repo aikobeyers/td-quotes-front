@@ -1,0 +1,27 @@
+html,
+body {
+	height: 100%;
+}
+
+body {
+	margin: 0;
+	font-family: 'Avenir', sans-serif;
+	background-color: #f6f6f6;
+	font-size: 14px;
+}
+
+body.filters--open,
+body.create--open,
+body.game--open,
+body.leaderboard--open {
+	overflow: hidden;
+}
+
+html,
+body {
+	width: 100dvw;
+}
+
+h3 {
+	margin: 0;
+}
