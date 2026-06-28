@@ -5,6 +5,7 @@ import {
   signal,
   ViewChild,
   ChangeDetectionStrategy,
+  computed,
 } from '@angular/core';
 import { TdQuotesService } from '../../../services/td-quotes.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -58,9 +59,32 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly store = inject(FiltersStore);
 
   public quotes = this.store.quotes;
+  private readonly favoriteStorageKey = 'td_quotes_favorites';
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
+  public activeTab = signal<'all' | 'recent' | 'favorites'>('all');
+  public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
+  public displayedQuotes = computed(() => {
+    const quoteList = this.quotes();
+    const tab = this.activeTab();
+
+    if (tab === 'favorites') {
+      const favorites = new Set(this.favoriteQuoteIds());
+      return quoteList.filter((quote) => favorites.has(quote._id));
+    }
+
+    if (tab === 'recent') {
+      return quoteList
+        .filter((quote) => this.parseDate(quote.date) !== null)
+        .sort((a, b) => {
+          return (this.parseDate(b.date) ?? 0) - (this.parseDate(a.date) ?? 0);
+        })
+        .slice(0, 10);
+    }
+
+    return quoteList;
+  });
 
   public ngOnInit(): void {
     this.titleService.setTitle('TD Quotes');
@@ -107,6 +131,90 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
   }
 
+  public setActiveTab(tab: 'all' | 'recent' | 'favorites'): void {
+    this.activeTab.set(tab);
+  }
+
+  public isFavorite(quoteId: string): boolean {
+    return this.favoriteQuoteIds().includes(quoteId);
+  }
+
+  public toggleFavorite(quoteId: string): void {
+    const currentFavorites = this.favoriteQuoteIds();
+    const favorites = currentFavorites.includes(quoteId)
+      ? currentFavorites.filter((id) => id !== quoteId)
+      : [...currentFavorites, quoteId];
+
+    this.favoriteQuoteIds.set(favorites);
+    this.persistFavorites(favorites);
+  }
+
+  private loadFavorites(): string[] {
+    if (typeof document === 'undefined') {
+      return [];
+    }
+
+    const storedValue = this.readCookie(this.favoriteStorageKey);
+    if (!storedValue) {
+      return [];
+    }
+
+    try {
+      const parsedValue = JSON.parse(storedValue);
+      return Array.isArray(parsedValue) ? parsedValue : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private persistFavorites(favorites: string[]): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const encodedValue = encodeURIComponent(JSON.stringify(favorites));
+    const maxAgeSeconds = 60 * 60 * 24 * 365;
+    document.cookie = `${this.favoriteStorageKey}=${encodedValue}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
+  }
+
+  private readCookie(name: string): string | null {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const prefix = `${name}=`;
+    const parts = document.cookie.split(';');
+
+    for (const part of parts) {
+      const cookie = part.trim();
+      if (cookie.startsWith(prefix)) {
+        const value = cookie.slice(prefix.length);
+        return decodeURIComponent(value);
+      }
+    }
+
+    return null;
+  }
+
+  private parseDate(date: string): number | null {
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(date);
+    if (!match) {
+      return null;
+    }
+
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
+
+    const parsedDate = new Date(year, month - 1, day);
+    const isSameDate =
+      parsedDate.getFullYear() === year &&
+      parsedDate.getMonth() === month - 1 &&
+      parsedDate.getDate() === day;
+
+    return isSameDate ? parsedDate.getTime() : null;
+  }
+
   public createQuote(quoteData: {
     value: string;
     date: string;
@@ -121,6 +229,15 @@ export class TdQuotesOverviewComponent implements OnInit {
         if (res.by && quoteData.newAuthor) {
           this.store.addAuthor(res.by);
         }
+
+        this.tdQuotesService
+          .sendNewQuotePushNotification()
+          .pipe(take(1))
+          .subscribe({
+            error: () => {
+              // No-op so quote creation never fails due to notification issues.
+            },
+          });
       });
   }
 }

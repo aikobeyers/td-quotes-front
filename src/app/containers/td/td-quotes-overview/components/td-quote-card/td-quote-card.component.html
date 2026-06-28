@@ -1,11 +1,48 @@
 @if (isSkeleton()) {
 <div class="td-quote-card--container">
-    <app-skeleton [width]="80" [height]="19" [borderRadius]="5" />
-    <app-skeleton [width]="15" [height]="'16.5'" [borderRadius]="5" />
+    <div class="quote-mark">&#8220;</div>
+    <div class="quote-content-skeleton">
+        <app-skeleton [width]="84" [height]="18" [borderRadius]="6" />
+        <app-skeleton [width]="72" [height]="18" [borderRadius]="6" />
+    </div>
+    <div class="card-footer">
+        <div class="quote--author-block">
+            <div class="author-icon">
+                <span class="material-icons">person_outline</span>
+            </div>
+            <div class="author-meta-skeleton">
+                <app-skeleton [width]="42" [height]="12" [borderRadius]="6" />
+                <app-skeleton [width]="28" [height]="10" [borderRadius]="6" />
+            </div>
+        </div>
+        <app-skeleton [width]="8" [height]="18" [borderRadius]="999" />
+    </div>
 </div>
 } @else {
 <div class="td-quote-card--container">
-    <span class="quote--value">"{{ tdQuote()?.value }}"</span>
-    <span class="quote--by">{{ tdQuote()?.by?.name }}</span>
+    <div class="quote-mark">&#8220;</div>
+    <span class="quote--value">{{ tdQuote()?.value }}</span>
+    <div class="card-footer">
+        <div class="quote--author-block">
+            <div class="author-icon">
+                <span class="material-icons">person_outline</span>
+            </div>
+            <div class="author-meta">
+                <span class="quote--by">{{ tdQuote()?.by?.name }}</span>
+                @if (tdQuote()?.date) {
+                <span class="quote--date">{{ tdQuote()?.date }}</span>
+                }
+            </div>
+        </div>
+        <button
+            class="favorite-button"
+            [class.active]="isFavorite()"
+            type="button"
+            [attr.aria-label]="isFavorite() ? 'Remove from favorites' : 'Add to favorites'"
+            (click)="toggleFavorite()"
+        >
+            <span class="material-icons">{{ isFavorite() ? 'star' : 'star_outline' }}</span>
+        </button>
+    </div>
 </div>
 }
