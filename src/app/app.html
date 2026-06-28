@@ -16,4 +16,22 @@
 	</div>
 }
 
+@if (canRequestNotificationPermission()) {
+	<div class="notification-banner" role="status" aria-live="polite">
+		<div class="notification-banner__text">
+			<span class="notification-banner__title">Enable notifications</span>
+			<span class="notification-banner__message">Get notified when someone adds a new quote.</span>
+		</div>
+
+		<button
+			type="button"
+			class="notification-banner__action"
+			[disabled]="notificationSubscriptionInProgress()"
+			(click)="enableNotifications()"
+		>
+			{{ notificationSubscriptionInProgress() ? 'Enabling...' : 'Enable' }}
+		</button>
+	</div>
+}
+
 <router-outlet />
