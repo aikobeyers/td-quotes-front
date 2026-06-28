@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  baseUrl: 'https://secret-message-api.netlify.app/.netlify/functions/server',
+  baseUrl: 'http://localhost:8888/api',
 };

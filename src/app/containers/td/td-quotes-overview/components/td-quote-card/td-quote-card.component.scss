@@ -6,28 +6,37 @@
     background-color: #f9f8f6;
     color: #1a1f29;
 
+    .quote-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 18px 14px;
+    }
+
     .quote-mark {
         color: #d3b06f;
         font-size: 42px;
         line-height: 1;
-        padding: 12px 18px 2px;
-        height: 30px;
+        flex-shrink: 0;
+        margin-top: 2px;
     }
 
     .quote--value {
         display: block;
-        padding: 0 18px 14px;
+        padding: 0;
         font-size: 24px;
         line-height: 1.24;
         letter-spacing: -0.01em;
         color: #151b26;
+        flex: 1;
+        min-width: 0;
     }
 
     .quote-content-skeleton {
-        padding: 0 18px 14px;
         display: flex;
         flex-direction: column;
         gap: 8px;
+        flex: 1;
     }
 
     .card-footer {
@@ -115,20 +124,23 @@
 
 @media (max-width: 700px) {
     .td-quote-card--container {
+        .quote-content {
+            gap: 8px;
+            padding: 10px 16px 12px;
+        }
+
         .quote-content-skeleton {
-            padding: 0 16px 12px;
             gap: 7px;
         }
 
         .quote--value {
             font-size: 20px;
             line-height: 1.28;
-            padding: 0 16px 12px;
         }
 
         .quote-mark {
             font-size: 36px;
-            padding: 10px 16px 2px;
+            margin-top: 1px;
         }
 
         .quote--by {
