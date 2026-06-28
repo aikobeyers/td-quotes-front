@@ -16,6 +16,8 @@ export class App implements OnInit {
 
   public updateAvailable = this.appUpdateService.updateAvailable;
   public updateInProgress = this.appUpdateService.updateInProgress;
+  public canRequestNotificationPermission = this.pushNotificationsService.canRequestPermission;
+  public notificationSubscriptionInProgress = this.pushNotificationsService.subscriptionInProgress;
 
   public ngOnInit(): void {
     this.appUpdateService.initUpdateChecks();
@@ -24,5 +26,9 @@ export class App implements OnInit {
 
   public refreshApp(): void {
     void this.appUpdateService.applyUpdate();
+  }
+
+  public enableNotifications(): void {
+    void this.pushNotificationsService.requestPermissionFromUserGesture();
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
 import { firstValueFrom, take } from 'rxjs';
 import { TdQuotesService } from './td-quotes.service';
@@ -12,6 +12,11 @@ export class PushNotificationsService {
 
   private initialized = false;
 
+  public notificationsSupported = signal(false);
+  public canRequestPermission = signal(false);
+  public permissionDenied = signal(false);
+  public subscriptionInProgress = signal(false);
+
   public initPushNotifications(): void {
     if (this.initialized) {
       return;
@@ -22,19 +27,47 @@ export class PushNotificationsService {
       return;
     }
 
-    this.ensureSubscription();
-  }
+    this.notificationsSupported.set(true);
 
-  private async ensureSubscription(): Promise<void> {
-    if (Notification.permission === 'denied') {
+    if (Notification.permission === 'granted') {
+      void this.ensureSubscription();
       return;
     }
 
-    const permission = Notification.permission === 'granted'
-      ? 'granted'
-      : await Notification.requestPermission();
+    if (Notification.permission === 'default') {
+      this.canRequestPermission.set(true);
+      return;
+    }
 
-    if (permission !== 'granted') {
+    this.permissionDenied.set(true);
+  }
+
+  public async requestPermissionFromUserGesture(): Promise<void> {
+    if (!this.notificationsSupported() || this.subscriptionInProgress()) {
+      return;
+    }
+
+    this.subscriptionInProgress.set(true);
+
+    try {
+      const permission = await Notification.requestPermission();
+
+      if (permission === 'granted') {
+        this.canRequestPermission.set(false);
+        this.permissionDenied.set(false);
+        await this.ensureSubscription();
+        return;
+      }
+
+      this.canRequestPermission.set(false);
+      this.permissionDenied.set(permission === 'denied');
+    } finally {
+      this.subscriptionInProgress.set(false);
+    }
+  }
+
+  private async ensureSubscription(): Promise<void> {
+    if (Notification.permission !== 'granted') {
       return;
     }
 
@@ -55,6 +88,9 @@ export class PushNotificationsService {
           .registerPushSubscription(subscription.toJSON())
           .pipe(take(1)),
       );
+
+      this.canRequestPermission.set(false);
+      this.permissionDenied.set(false);
     } catch {
       // No-op for now; push setup should not block app usage.
     }
