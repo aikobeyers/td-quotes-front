@@ -1,6 +1,12 @@
 <div class="td-quotes-overview--wrapper" #container (scroll)="onScroll($event)">
     <div class="td-quotes-overview--header" [ngClass]="{ scrolled: hasScrolled() }">
-        <button class="header--brand" type="button" aria-label="TD brand" (click)="onBrandTap()">
+        <button
+            class="header--brand"
+            type="button"
+            aria-label="TD brand"
+            (touchstart)="onBrandTap($event)"
+            (click)="onBrandTap($event)"
+        >
             <img src="icons/TD Icon sleek new.png" alt="TD" class="brand--logo" />
         </button>
 
