@@ -1,22 +1,12 @@
-<div class="td-quotes-overview--wrapper">
+<div class="td-quotes-overview--wrapper" #container (scroll)="onScroll($event)">
     <div class="td-quotes-overview--header" [ngClass]="{ scrolled: hasScrolled() }">
-        <div class="header--brand">
+        <button class="header--brand" type="button" aria-label="TD brand" (click)="onBrandTap()">
             <img src="icons/TD Icon sleek new.png" alt="TD" class="brand--logo" />
-        </div>
+        </button>
 
         <div class="header--title">TD Quotes</div>
 
         <div class="header--actions">
-            <button
-                class="icon-button icon-button--test-push"
-                type="button"
-                [disabled]="isSendingTestPush()"
-                (click)="sendTestPushNotification()"
-                aria-label="Send test push notification"
-                title="Temporary: send test push"
-            >
-                <mat-icon [fontIcon]="isSendingTestPush() ? 'hourglass_top' : 'notifications'" />
-            </button>
             <button class="icon-button" type="button" (click)="openCreate()" aria-label="Create quote">
                 <mat-icon fontIcon="add"></mat-icon>
             </button>
@@ -26,7 +16,7 @@
     </div>
     </div>
 
-    <div class="td-quotes-overview--container" #container (scroll)="onScroll($event)">
+    <div class="td-quotes-overview--container">
         <section class="overview--intro">
             <div class="overview--tabs">
                 <button
@@ -81,6 +71,60 @@
         </div>
     </div>
 </div>
+
+<div
+    class="secret-modal--backdrop"
+    [ngClass]="{ open: isSecretModalOpen(), closed: !isSecretModalOpen() }"
+    (click)="closeSecretModal()"
+>
+    <div class="secret-modal--box" (click)="$event.stopPropagation()">
+        <div class="secret-modal--header">
+            <div class="secret-modal--title">Custom Push Notification</div>
+            <button
+                type="button"
+                class="secret-close-button"
+                aria-label="Close secret modal"
+                (click)="closeSecretModal()"
+            >
+                <mat-icon fontIcon="close"></mat-icon>
+            </button>
+        </div>
+
+        <div class="secret-modal--form">
+            <label class="secret-label" for="secret-notification-title">Title</label>
+            <input
+                id="secret-notification-title"
+                class="secret-input"
+                type="text"
+                [(ngModel)]="secretNotificationTitle"
+                maxlength="120"
+                autocomplete="off"
+            />
+
+            <label class="secret-label" for="secret-notification-body">Body</label>
+            <textarea
+                id="secret-notification-body"
+                class="secret-textarea"
+                [(ngModel)]="secretNotificationBody"
+                maxlength="500"
+                rows="5"
+            ></textarea>
+        </div>
+
+        <div class="secret-modal--footer">
+            <button type="button" class="secondary-button" (click)="closeSecretModal()">Cancel</button>
+            <button
+                type="button"
+                class="apply-button"
+                [disabled]="!canSendSecretNotification() || isSendingSecretNotification()"
+                (click)="sendSecretNotification()"
+            >
+                Send Push
+            </button>
+        </div>
+    </div>
+</div>
+
 <app-td-quote-filters #filters (closeFiltersEmitter)="getQuotes($event)"></app-td-quote-filters>
 <app-td-quote-create #create (closeCreateEmitter)="getQuotes($event)"
     (createQuoteEmitter)="createQuote($event)"></app-td-quote-create>

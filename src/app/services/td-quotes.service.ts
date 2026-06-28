@@ -56,10 +56,10 @@ export class TdQuotesService {
     return this.http.post<void>(`${BASE_URL}/push/subscribe`, { subscription });
   }
 
-  public sendNewQuotePushNotification(): Observable<void> {
+  public sendNewQuotePushNotification(title: string, body: string): Observable<void> {
     return this.http.post<void>(`${BASE_URL}/push/broadcast`, {
-      title: 'TD Quotes',
-      body: 'Someone added a new quote!',
+      title,
+      body,
     });
   }
 }
