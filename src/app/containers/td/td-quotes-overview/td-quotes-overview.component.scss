@@ -78,7 +78,7 @@
     }
 
     .td-quotes-overview--container {
-        padding: 6px 16px 20px;
+        padding: 6px 16px 108px;
 
         .overview--intro {
             margin-bottom: 18px;
@@ -132,6 +132,29 @@
                 color: #31343b;
                 font-size: 14px;
             }
+        }
+    }
+
+    .create-fab {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 30;
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        border: 1px solid #c9d3e2;
+        background: linear-gradient(180deg, #eef3fa 0%, #dfe8f5 100%);
+        color: #1f2f44;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 10px 26px rgba(17, 27, 41, 0.22);
+
+        mat-icon {
+            font-size: 30px;
+            width: 30px;
+            height: 30px;
         }
     }
 }

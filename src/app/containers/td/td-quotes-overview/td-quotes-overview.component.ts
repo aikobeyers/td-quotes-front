@@ -75,8 +75,8 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isSendingSecretNotification = signal(false);
   public activeTab = signal<'all' | 'recent' | 'favorites'>('all');
   public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
-  public secretNotificationTitle = 'Very important notification';
-  public secretNotificationBody = 'Someone added a new quote!';
+  public secretNotificationTitle = '';
+  public secretNotificationBody = '';
   public displayedQuotes = computed(() => {
     const quoteList = this.quotes();
     const tab = this.activeTab();
@@ -149,6 +149,8 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   public openSecretModal(): void {
+    this.secretNotificationTitle = '';
+    this.secretNotificationBody = '';
     this.isSecretModalOpen.set(true);
   }
 

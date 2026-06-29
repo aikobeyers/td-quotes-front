@@ -13,13 +13,10 @@
         <div class="header--title">TD Quotes</div>
 
         <div class="header--actions">
-            <button class="icon-button" type="button" (click)="openCreate()" aria-label="Create quote">
-                <mat-icon fontIcon="add"></mat-icon>
-            </button>
             <button class="icon-button" type="button" (click)="openFilters()" aria-label="Filter quotes">
                 <mat-icon fontIcon="filter_alt"></mat-icon>
             </button>
-    </div>
+        </div>
     </div>
 
     <div class="td-quotes-overview--container">
@@ -76,6 +73,10 @@
             <button class="text-action" type="button" (click)="openLeaderboard()">View Leaderboard</button>
         </div>
     </div>
+
+    <button class="create-fab" type="button" (click)="openCreate()" aria-label="Create quote">
+        <mat-icon fontIcon="add"></mat-icon>
+    </button>
 </div>
 
 <div
