@@ -1,0 +1,98 @@
+name: Set release PR title and commits
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  set-release-pr-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set PR title/body for develop release PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.info('No pull request payload.');
+              return;
+            }
+
+            const baseRef = pr.base.ref;
+            const headRef = pr.head.ref;
+            const isReleasePr = headRef === 'develop' && (baseRef === 'master' || baseRef === 'main');
+
+            if (!isReleasePr) {
+              core.info(`Skipping. head=${headRef}, base=${baseRef}`);
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const parseAndBumpMinor = (version) => {
+              const match = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:[-+].*)?$/.exec(version || '');
+              if (!match) {
+                throw new Error(`Unsupported semver format: ${version}`);
+              }
+
+              const major = Number(match[1]);
+              const minor = Number(match[2]);
+              return `${major}.${minor + 1}.0`;
+            };
+
+            const packageJsonResp = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path: 'package.json',
+              ref: baseRef,
+            });
+
+            if (Array.isArray(packageJsonResp.data) || !packageJsonResp.data.content) {
+              throw new Error('Could not load package.json from base branch.');
+            }
+
+            const packageJsonContent = Buffer.from(packageJsonResp.data.content, 'base64').toString('utf8');
+            const packageJson = JSON.parse(packageJsonContent);
+            const nextVersion = parseAndBumpMinor(packageJson.version);
+            const nextVersionTag = `v${nextVersion}`;
+            const prTitle = `Release ${nextVersionTag}`;
+
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner,
+              repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const commitLines = commits.map((c) => {
+              const shortSha = c.sha.slice(0, 7);
+              const firstLine = (c.commit?.message || '').split('\n')[0].trim();
+              const author = c.commit?.author?.name || c.author?.login || 'unknown';
+              return `- \`${shortSha}\` ${firstLine} (${author})`;
+            });
+
+            const body = [
+              `Release version: \`${nextVersionTag}\``,
+              '',
+              `Commits in this PR (${commitLines.length}):`,
+              commitLines.length > 0 ? commitLines.join('\n') : '- No commits found.',
+            ].join('\n');
+
+            await github.rest.pulls.update({
+              owner,
+              repo,
+              pull_number: pr.number,
+              title: prTitle,
+              body,
+            });
+
+            core.info(`Updated PR #${pr.number} title to ${prTitle} and refreshed commit list.`);
