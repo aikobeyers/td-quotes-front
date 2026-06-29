@@ -1,0 +1,50 @@
+name: Bump patch on fix merge
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  bump-patch:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master' && startsWith(github.event.pull_request.head.ref, 'fix/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump patch version and sync manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npm version patch --no-git-tag-version
+
+          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));const manifestPath='public/manifest.webmanifest';const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));manifest.version=pkg.version;fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\n');"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add package.json package-lock.json public/manifest.webmanifest
+
+          if git diff --cached --quiet; then
+            echo "No version changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore(release): bump patch version after fix merge [skip ci]"
+          git push origin master
