@@ -1,66 +1,112 @@
-<div class="game--backdrop" [ngClass]="{open: isOpen, closed: !isOpen}" (click)="closeGame()">
-    <div class="game--box" [ngClass]="{authors: gameStage() === 'authors' || gameStage() === 'guesser' || gameStage() === 'leaderboard'}" (click)="$event.stopPropagation()">
+<div class="game--backdrop" [class.open]="isOpen" [class.closed]="!isOpen" (click)="closeGame()">
+    <div class="game--box" [class.expanded]="gameStage() !== 'quote'" (click)="$event.stopPropagation()">
         <div class="game--header">
-            @if(gameStage() === 'leaderboard') {
-                <div class="game--header-title">Top 3 Leaderboard</div>
-            } @else {
-                <div class="game--header-quote" [ngClass]="{visible: gameStage() !== 'quote'}">"{{ randomQuote()?.value }}"</div>
-            }
-            <mat-icon fontIcon="close" (click)="closeGame()"></mat-icon>
+            <div>
+                <div class="game--header-title">Quote Game</div>
+                <div class="game--header-subtitle">Tap through a fast round with friends.</div>
+            </div>
+
+            <button type="button" class="game--close" aria-label="Close quote game" (click)="closeGame()">
+                <mat-icon fontIcon="close"></mat-icon>
+            </button>
         </div>
+
+        <div class="game--progress" aria-label="Game progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="progressPercent()">
+            <div class="game--progress-fill" [style.width.%]="progressPercent()"></div>
+        </div>
+
         <div class="game--content">
-            @if(gameStage() === 'quote') {
-                @if(isLoading()) {
-                <app-skeleton [width]="80" [height]="19" [borderRadius]="5" />
-                } @else {
-                <div class="game-content" [ngClass]="{hidden: gameStage() === 'authors'}">"{{ randomQuote()?.value }}"</div>
-                <div class="game--next-row">
-                    <mat-icon fontIcon="east" class="game--next-icon" (click)="showAuthors()"></mat-icon>
-                </div>
-                }
-            } @else if(gameStage() === 'authors') {
-                <div class="game--authors-container">
-                    @for(author of authors(); track author) {
-                    <div class="game--author-item" (click)="selectAuthor(author._id)">
-                        <div>{{ author.name }}</div>
-                    </div>
-                    }
-                </div>
-                <div class="game--question-row">
-                    <span class="game--question-text">Choose who said it...</span>
-                    <mat-icon fontIcon="check" class="game--question-icon" [ngClass]="{disabled: !selectedAuthorId()}" (click)="submitSelection()"></mat-icon>
-                </div>
-            } @else if(gameStage() === 'correct') {
-                <div class="game--correct">Correct!</div>
-            } @else if(gameStage() === 'incorrect') {
-                <div class="game--incorrect">Incorrect</div>
-            } @else if(gameStage() === 'guesser') {
-                <div class="game--authors-container">
-                    @for(author of authors(); track author) {
-                    <div class="game--author-item" (click)="selectAuthor(author._id)">
-                        <div>{{ author.name }}</div>
-                    </div>
-                    }
-                </div>
-                <div class="game--question-row">
-                    <span class="game--question-text">Choose who guessed it...</span>
-                    @if(isUpdatingScore()) {
-                        <mat-icon fontIcon="autorenew" class="game--question-icon game--spinner"></mat-icon>
+            @if (gameStage() !== 'leaderboard') {
+                <div class="game--quote-card">
+                    @if (isLoading()) {
+                        <app-skeleton [width]="80" [height]="19" [borderRadius]="5" />
                     } @else {
-                        <mat-icon fontIcon="check" class="game--question-icon" [ngClass]="{disabled: !selectedGuesserId()}" (click)="submitSelection()"></mat-icon>
+                        <div class="game--quote-value">"{{ randomQuote()?.value || 'No quote available right now.' }}"</div>
                     }
                 </div>
-            } @else if(gameStage() === 'leaderboard') {
-                <div class="game--leaderboard">
-                    <div class="game--leaderboard-list">
-                        @for(author of topThree(); track author._id; let idx = $index) {
+            }
+
+            @if (gameStage() === 'quote') {
+                <div class="game--actions">
+                    <button type="button" class="game--primary" [disabled]="isLoading() || !randomQuote()" (click)="showAuthors()">
+                        Choose Author
+                    </button>
+                </div>
+            } @else if (gameStage() === 'authors') {
+                <div class="game--prompt">Who said this quote?</div>
+                <div class="game--authors-container">
+                    @for (author of authorOptions(); track author._id) {
+                        <button
+                            type="button"
+                            class="game--author-item"
+                            [class.selected]="isAuthorSelected(author._id)"
+                            (click)="selectAuthor(author._id)"
+                        >
+                            {{ author.name }}
+                        </button>
+                    }
+                </div>
+
+                <div class="game--actions">
+                    <button type="button" class="game--primary" [disabled]="!selectedAuthorId()" (click)="submitSelection()">
+                        Check Answer
+                    </button>
+                </div>
+            } @else if (gameStage() === 'feedback') {
+                <div class="game--feedback" [class.correct]="feedbackType() === 'correct'" [class.incorrect]="feedbackType() === 'incorrect'">
+                    <mat-icon [fontIcon]="feedbackType() === 'correct' ? 'check_circle' : 'cancel'"></mat-icon>
+                    <div>{{ feedbackMessage() }}</div>
+                </div>
+
+                <div class="game--actions">
+                    <button type="button" class="game--primary" (click)="continueFromFeedback()">
+                        {{ feedbackType() === 'correct' ? 'Continue to Guesser' : 'Try Again' }}
+                    </button>
+                </div>
+            } @else if (gameStage() === 'guesser') {
+                <div class="game--prompt">Who guessed correctly and earns the point?</div>
+                <div class="game--authors-container">
+                    @for (author of authorOptions(); track author._id) {
+                        <button
+                            type="button"
+                            class="game--author-item"
+                            [class.selected]="isAuthorSelected(author._id)"
+                            (click)="selectAuthor(author._id)"
+                        >
+                            {{ author.name }}
+                        </button>
+                    }
+                </div>
+
+                <div class="game--actions">
+                    <button
+                        type="button"
+                        class="game--primary"
+                        [disabled]="!selectedGuesserId() || isUpdatingScore()"
+                        (click)="submitSelection()"
+                    >
+                        @if (isUpdatingScore()) {
+                            Saving Score...
+                        } @else {
+                            Save Round
+                        }
+                    </button>
+                </div>
+            } @else if (gameStage() === 'leaderboard') {
+                <div class="game--leaderboard-title">Top 3 Leaderboard</div>
+                <div class="game--leaderboard-list">
+                    @for (author of topThree(); track author._id; let idx = $index) {
                         <div class="game--leaderboard-item">
                             <div class="game--leaderboard-rank">{{ idx + 1 }}</div>
                             <div class="game--leaderboard-name">{{ author.name }}</div>
                             <div class="game--leaderboard-score">{{ author.score }}</div>
                         </div>
-                        }
-                    </div>
+                    }
+                </div>
+
+                <div class="game--actions">
+                    <button type="button" class="game--secondary" (click)="closeGame()">Close</button>
+                    <button type="button" class="game--primary" (click)="startNewRound()">Play Another Round</button>
                 </div>
             }
         </div>
