@@ -25,6 +25,8 @@ export class TdQuotesService {
     let params = new HttpParams();
     const filters = this.filtersStore.filters();
 
+    params = params.set('scope', filters.scope);
+
     if (filters.by.length > 0) {
       params = params.set('by', filters.by.join(','));
     }
@@ -34,10 +36,6 @@ export class TdQuotesService {
     }
 
     return this.http.get<TdQuoteWithId[]>(`${BASE_URL}/tdquotes/get`, { params });
-  }
-
-  public getRecentTdQuotes(): Observable<TdQuoteWithId[]> {
-    return this.http.get<TdQuoteWithId[]>(`${BASE_URL}/tdquotes/recent`);
   }
 
   public createQuote(req: {value: string, date: string, by: string | undefined | null, newAuthor: string| undefined | null}): Observable<TdQuoteWithId> {

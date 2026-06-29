@@ -4,10 +4,13 @@ import { computed } from '@angular/core';
 import { TdQuote, TdQuoteWithId } from '../models/TdQuote';
 import { TdQuoteAuthorWithId } from '../models/TdQuoteAuthor';
 
+export type QuoteScope = 'all' | 'recent' | 'favorites';
+
 export type FiltersState = {
     filters:{
         by: string[];
         quoteQuery: string;
+    scope: QuoteScope;
     };
     authors: TdQuoteAuthorWithId[];
   quotes: TdQuoteWithId[];
@@ -17,6 +20,7 @@ const initialFiltersState: FiltersState = {
     filters: {
         by: [],
         quoteQuery: '',
+      scope: 'all',
     },
     authors: [],
     quotes: [],
@@ -32,7 +36,10 @@ export const FiltersStore = signalStore(
     setQuoteQuery(quoteQuery: string): void {
       patchState(store, { filters: { ...store.filters(), quoteQuery } });
     },
-    setFilters(filters: Partial<{ by: string[]; quoteQuery: string }>): void {
+    setScope(scope: QuoteScope): void {
+      patchState(store, { filters: { ...store.filters(), scope } });
+    },
+    setFilters(filters: Partial<{ by: string[]; quoteQuery: string; scope: QuoteScope }>): void {
       patchState(store, { filters: { ...store.filters(), ...filters } });
     },
     setAuthors(authors: TdQuoteAuthorWithId[]): void {
@@ -61,7 +68,7 @@ export const FiltersStore = signalStore(
       }
     },
     resetFilters(): void {
-      patchState(store, { filters: { by: [], quoteQuery: '' } });
+      patchState(store, { filters: { by: [], quoteQuery: '', scope: 'all' } });
     },
     toggleAuthor(author: string): void {
       const currentAuthors = store.filters().by;
@@ -75,6 +82,7 @@ export const FiltersStore = signalStore(
   withComputed((store) => ({
     filterBy: computed(() => store.filters().by),
     quoteQuery: computed(() => store.filters().quoteQuery),
+    scope: computed(() => store.filters().scope),
     authors: computed(() => store.authors()),
     quotes: computed(() => store.quotes()),
   }))

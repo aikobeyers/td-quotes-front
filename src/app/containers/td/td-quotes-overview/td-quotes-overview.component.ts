@@ -73,25 +73,11 @@ export class TdQuotesOverviewComponent implements OnInit {
   public hasScrolled = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
-  public activeTab = signal<'all' | 'recent' | 'favorites'>('all');
   public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
-  public recentQuotes = signal<TdQuoteWithId[]>([]);
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
   public displayedQuotes = computed(() => {
-    const quoteList = this.quotes();
-    const tab = this.activeTab();
-
-    if (tab === 'favorites') {
-      const favorites = new Set(this.favoriteQuoteIds());
-      return quoteList.filter((quote) => favorites.has(quote._id));
-    }
-
-    if (tab === 'recent') {
-      return this.recentQuotes();
-    }
-
-    return quoteList;
+    return this.quotes();
   });
 
   public ngOnInit(): void {
@@ -202,36 +188,16 @@ export class TdQuotesOverviewComponent implements OnInit {
       this.tdQuotesService
         .getTdQuotes()
         .pipe(take(1))
-        .subscribe((quotes) => {
-          this.store.setQuotes(quotes);
-          this.isLoading.set(false);
+        .subscribe({
+          next: (quotes) => {
+            this.store.setQuotes(quotes);
+            this.isLoading.set(false);
+          },
+          error: () => {
+            this.isLoading.set(false);
+          },
         });
     }
-  }
-
-  public setActiveTab(tab: 'all' | 'recent' | 'favorites'): void {
-    this.activeTab.set(tab);
-
-    if (tab === 'recent') {
-      this.getRecentQuotes();
-    }
-  }
-
-  private getRecentQuotes(): void {
-    this.isLoading.set(true);
-    this.tdQuotesService
-      .getRecentTdQuotes()
-      .pipe(take(1))
-      .subscribe({
-        next: (quotes) => {
-          this.recentQuotes.set(quotes);
-          this.isLoading.set(false);
-        },
-        error: () => {
-          this.recentQuotes.set([]);
-          this.isLoading.set(false);
-        },
-      });
   }
 
   public isFavorite(quoteId: string): boolean {
@@ -321,10 +287,6 @@ export class TdQuotesOverviewComponent implements OnInit {
               // No-op so quote creation never fails due to notification issues.
             },
           });
-
-        if (this.activeTab() === 'recent') {
-          this.getRecentQuotes();
-        }
       });
   }
 }

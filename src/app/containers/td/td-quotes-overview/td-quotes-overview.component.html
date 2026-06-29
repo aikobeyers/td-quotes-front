@@ -20,35 +20,6 @@
     </div>
 
     <div class="td-quotes-overview--container">
-        <section class="overview--intro">
-            <div class="overview--tabs">
-                <button
-                    type="button"
-                    class="tab-pill"
-                    [class.active]="activeTab() === 'all'"
-                    (click)="setActiveTab('all')"
-                >
-                    All
-                </button>
-                <button
-                    type="button"
-                    class="tab-pill"
-                    [class.active]="activeTab() === 'recent'"
-                    (click)="setActiveTab('recent')"
-                >
-                    Recent
-                </button>
-                <button
-                    type="button"
-                    class="tab-pill"
-                    [class.active]="activeTab() === 'favorites'"
-                    (click)="setActiveTab('favorites')"
-                >
-                    Favorites
-                </button>
-            </div>
-        </section>
-
         @if (isLoading()) {
             @for (i of [].constructor(8); track $index; let last = $last) {
                 <div [ngStyle]="{ 'margin-bottom.px': last ? 0 : 10 }">

@@ -8,6 +8,36 @@
         </div>
 
         <div class="filters--content">
+            <div class="scope-filter--wrapper">
+                <h3>Scope</h3>
+                <div class="scope-filter--tabs">
+                    <button
+                        type="button"
+                        class="scope-tab"
+                        [class.active]="scope() === 'all'"
+                        (click)="setScope('all')"
+                    >
+                        All
+                    </button>
+                    <button
+                        type="button"
+                        class="scope-tab"
+                        [class.active]="scope() === 'recent'"
+                        (click)="setScope('recent')"
+                    >
+                        Recent
+                    </button>
+                    <button
+                        type="button"
+                        class="scope-tab"
+                        [class.active]="scope() === 'favorites'"
+                        (click)="setScope('favorites')"
+                    >
+                        Favorites
+                    </button>
+                </div>
+            </div>
+
             <div class="input-wrapper">
                 <mat-icon fontIcon="search" class="input-icon"></mat-icon>
                 <input
