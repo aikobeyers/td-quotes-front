@@ -6,6 +6,8 @@ import {
   ViewChild,
   ChangeDetectionStrategy,
   computed,
+  ElementRef,
+  HostListener,
 } from '@angular/core';
 import { TdQuotesService } from '../../../services/td-quotes.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -56,6 +58,9 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   @ViewChild('container')
   private containerElement: any;
+
+  @ViewChild('headerActions')
+  private headerActionsElement?: ElementRef<HTMLElement>;
 
   private readonly tdQuotesService = inject(TdQuotesService);
   private readonly titleService = inject(Title);
@@ -212,6 +217,23 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.isHeaderMenuOpen.set(false);
   }
 
+  @HostListener('document:pointerdown', ['$event'])
+  public onDocumentPointerDown(event: PointerEvent): void {
+    if (!this.isHeaderMenuOpen()) {
+      return;
+    }
+
+    const actionsElement = this.headerActionsElement?.nativeElement;
+    const target = event.target as Node | null;
+    if (!actionsElement || !target) {
+      return;
+    }
+
+    if (!actionsElement.contains(target)) {
+      this.closeHeaderMenu();
+    }
+  }
+
   public openGameFromMenu(): void {
     this.closeHeaderMenu();
     this.openGame();
@@ -220,6 +242,13 @@ export class TdQuotesOverviewComponent implements OnInit {
   public openLeaderboardFromMenu(): void {
     this.closeHeaderMenu();
     this.openLeaderboard();
+  }
+
+  public logoutActiveUser(): void {
+    this.closeHeaderMenu();
+    this.activeUser.set(null);
+    this.clearCookie(this.activeUserStorageKey);
+    this.openActiveUserModalIfNeeded();
   }
 
   public onBrandTap(event: Event): void {
@@ -431,6 +460,14 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
 
     return null;
+  }
+
+  private clearCookie(name: string): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
   }
 
   private isObjectId(value: string): boolean {

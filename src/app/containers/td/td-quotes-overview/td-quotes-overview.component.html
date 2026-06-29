@@ -26,7 +26,7 @@
 
         <div class="header--title">TD Quotes</div>
 
-        <div class="header--actions">
+        <div class="header--actions" #headerActions>
             <button
                 class="icon-button"
                 type="button"
@@ -39,10 +39,10 @@
 
             @if (isHeaderMenuOpen()) {
                 <div class="header-menu" role="menu" aria-label="Overview menu">
-                    <div class="menu-active-user">
-                        <span class="menu-active-user--label">User</span>
+                    <button type="button" class="menu-item menu-active-user" role="menuitem" (click)="logoutActiveUser()">
                         <span class="menu-active-user--value">{{ activeUser()?.name || 'Unknown' }}</span>
-                    </div>
+                        <span class="menu-active-user--logout">Logout</span>
+                    </button>
                     <button type="button" class="menu-item" role="menuitem" (click)="openGameFromMenu()">
                         Play Quote Game
                     </button>
@@ -54,10 +54,6 @@
         </div>
 
     </div>
-
-    @if (isHeaderMenuOpen()) {
-        <div class="header-menu--backdrop" (click)="closeHeaderMenu()"></div>
-    }
 
     <div class="td-quotes-overview--container">
         @if (isLoading()) {
