@@ -26,6 +26,7 @@ import { TdQuoteWithId } from '../../../models/TdQuote';
 import { TdQuoteAuthorWithId } from '../../../models/TdQuoteAuthor';
 import { TdQuoteGameComponent } from '../td-quote-game/td-quote-game.component';
 import { TdQuotesLeaderboardComponent } from '../td-quotes-leaderboard/td-quotes-leaderboard.component';
+import { PwaInstallService } from '../../../services/pwa-install';
 
 @Component({
   selector: 'app-td-quotes-overview',
@@ -62,6 +63,10 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   @ViewChild('headerActions')
   private headerActionsElement?: ElementRef<HTMLElement>;
+
+    private readonly pwaInstallService = inject(PwaInstallService);
+
+  readonly canInstall = this.pwaInstallService.canInstall;
 
   private readonly tdQuotesService = inject(TdQuotesService);
   private readonly pushNotificationsService = inject(PushNotificationsService);
@@ -748,6 +753,10 @@ export class TdQuotesOverviewComponent implements OnInit {
             },
           });
       });
+  }
+
+  public  installPwa(): void {
+    void this.pwaInstallService.install();
   }
 
   private takeAppliedFiltersSnapshot(): {

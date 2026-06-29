@@ -91,12 +91,21 @@
     </button>
 </div>
 
-<div class="active-user-modal--backdrop" [ngClass]="{ open: isActiveUserModalOpen(), closed: !isActiveUserModalOpen() }">
+<div class="active-user-modal--backdrop" [ngClass]="{ open: isActiveUserModalOpen() || canInstall(), closed: !isActiveUserModalOpen() && !canInstall() }">
     <div class="active-user-modal--box">
-        <div class="active-user-modal--title">Who's using the app?</div>
+        <div class="active-user-modal--title">
+            @if (canInstall()) {
+                Install the app
+            } @else if(isActiveUserModalOpen()) {
+                Who's using the app?
+            }
+        </div>
 
         <div class="active-user-options">
-            @for (author of authors(); track author._id) {
+            @if (canInstall()) {
+                Please install the app to use it. You can do this by clicking the "Install app" button below.
+            } @else if (isActiveUserModalOpen()) {
+                @for (author of authors(); track author._id) {
                 <button
                     type="button"
                     class="active-user-pill"
@@ -105,21 +114,30 @@
                 >
                     {{ author.name }}
                 </button>
+            } 
             }
         </div>
 
         <div class="active-user-modal--footer">
-            @if (activeUserSaveError()) {
-                <div class="active-user-modal--error" role="alert">{{ activeUserSaveError() }}</div>
+            @if(canInstall()) {
+                <button
+                    class="apply-button"
+                    type="button"
+                    (click)="installPwa()"
+                >
+                    Install app
+                </button>
             }
-            <button
-                class="apply-button"
-                type="button"
-                [disabled]="!canConfirmActiveUser() || isSavingActiveUser()"
-                (click)="confirmActiveUser()"
-            >
-                {{ isSavingActiveUser() ? 'Saving...' : 'Confirm' }}
-            </button>
+            @else if(isActiveUserModalOpen()) {
+                <button
+                    class="apply-button"
+                    type="button"
+                    [disabled]="!canConfirmActiveUser() || isSavingActiveUser()"
+                    (click)="confirmActiveUser()"
+                >
+                    {{ isSavingActiveUser() ? 'Saving...' : 'Confirm' }}
+                </button>
+            }
         </div>
     </div>
 </div>
@@ -218,6 +236,9 @@
                 autocomplete="off"
                 (input)="onNewActiveUserInput($any($event.target).value)"
                  />
+                  @if (activeUserSaveError()) {
+                <div class="active-user-modal--error" role="alert">{{ activeUserSaveError() }}</div>
+            }
         </div>
 
         </div>
