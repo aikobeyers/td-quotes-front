@@ -1,0 +1,65 @@
+name: Bump minor on develop merge
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  bump-minor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect merge commit from develop
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Merge commit has at least 2 parents.
+          parent_count=$(git rev-list --parents -n 1 HEAD | wc -w)
+          if [[ "$parent_count" -lt 3 ]]; then
+            echo "is_develop_merge=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git fetch origin develop --depth=1
+
+          second_parent=$(git rev-parse HEAD^2)
+          if git merge-base --is-ancestor "$second_parent" origin/develop; then
+            echo "is_develop_merge=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_develop_merge=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        if: steps.detect.outputs.is_develop_merge == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump minor version
+        if: steps.detect.outputs.is_develop_merge == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npm version minor --no-git-tag-version
+
+          node -e "const fs=require('fs');const pkgPath='package.json';const manifestPath='public/manifest.webmanifest';const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));manifest.version=pkg.version;fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\n');"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add package.json package-lock.json public/manifest.webmanifest
+          git commit -m "chore(release): bump minor version after develop merge [skip ci]"
+          git push
