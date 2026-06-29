@@ -71,13 +71,29 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
+  public isHeaderMenuOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
   public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
+  public appliedFilters = signal(this.takeAppliedFiltersSnapshot());
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
   public displayedQuotes = computed(() => {
     return this.quotes();
+  });
+  public activeFilterPills = computed(() => {
+    const filters = this.appliedFilters();
+    const pills: string[] = [this.formatScopeLabel(filters.scope)];
+
+    if (filters.quoteQuery.trim().length > 0) {
+      pills.push(`Search: ${filters.quoteQuery.trim()}`);
+    }
+
+    for (const author of filters.by) {
+      pills.push(`By: ${author}`);
+    }
+
+    return pills;
   });
 
   public ngOnInit(): void {
@@ -97,7 +113,26 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   public openFilters(): void {
+    this.closeHeaderMenu();
     this.filtersComponent.openFilters();
+  }
+
+  public toggleHeaderMenu(): void {
+    this.isHeaderMenuOpen.update((isOpen) => !isOpen);
+  }
+
+  public closeHeaderMenu(): void {
+    this.isHeaderMenuOpen.set(false);
+  }
+
+  public openGameFromMenu(): void {
+    this.closeHeaderMenu();
+    this.openGame();
+  }
+
+  public openLeaderboardFromMenu(): void {
+    this.closeHeaderMenu();
+    this.openLeaderboard();
   }
 
   public onBrandTap(event: Event): void {
@@ -171,6 +206,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   public openCreate(): void {
+    this.closeHeaderMenu();
     this.createComponent.openCreate();
   }
 
@@ -184,6 +220,7 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public getQuotes(skip = false): void {
     if (!skip) {
+      this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
       this.isLoading.set(true);
       this.tdQuotesService
         .getTdQuotes()
@@ -288,5 +325,22 @@ export class TdQuotesOverviewComponent implements OnInit {
             },
           });
       });
+  }
+
+  private takeAppliedFiltersSnapshot(): {
+    by: string[];
+    quoteQuery: string;
+    scope: 'all' | 'recent' | 'favorites';
+  } {
+    const filters = this.store.filters();
+    return {
+      by: [...filters.by],
+      quoteQuery: filters.quoteQuery,
+      scope: filters.scope,
+    };
+  }
+
+  private formatScopeLabel(scope: 'all' | 'recent' | 'favorites'): string {
+    return scope.charAt(0).toUpperCase() + scope.slice(1);
   }
 }

@@ -1,23 +1,59 @@
 <div class="td-quotes-overview--wrapper" #container (scroll)="onScroll($event)">
     <div class="td-quotes-overview--header" [ngClass]="{ scrolled: hasScrolled() }">
-        <button
-            class="header--brand"
-            type="button"
-            aria-label="TD brand"
-            (touchstart)="onBrandTap($event)"
-            (click)="onBrandTap($event)"
-        >
-            <img src="icons/TD Icon sleek new.png" alt="TD" class="brand--logo" />
-        </button>
+        <div class="header--left">
+            <button
+                class="header--brand"
+                type="button"
+                aria-label="TD brand"
+                (touchstart)="onBrandTap($event)"
+                (click)="onBrandTap($event)"
+            >
+                <img src="icons/TD Icon sleek new.png" alt="TD" class="brand--logo" />
+            </button>
+
+            <div class="header--filters-row">
+                <button class="icon-button" type="button" (click)="openFilters()" aria-label="Filter quotes">
+                    <mat-icon fontIcon="filter_alt"></mat-icon>
+                </button>
+
+                <div class="header--filter-pills">
+                    @for (pill of activeFilterPills(); track pill) {
+                        <span class="filter-pill">{{ pill }}</span>
+                    }
+                </div>
+            </div>
+        </div>
 
         <div class="header--title">TD Quotes</div>
 
         <div class="header--actions">
-            <button class="icon-button" type="button" (click)="openFilters()" aria-label="Filter quotes">
-                <mat-icon fontIcon="filter_alt"></mat-icon>
+            <button
+                class="icon-button"
+                type="button"
+                aria-label="Open menu"
+                [attr.aria-expanded]="isHeaderMenuOpen()"
+                (click)="toggleHeaderMenu()"
+            >
+                <mat-icon fontIcon="menu"></mat-icon>
             </button>
+
+            @if (isHeaderMenuOpen()) {
+                <div class="header-menu" role="menu" aria-label="Overview menu">
+                    <button type="button" class="menu-item" role="menuitem" (click)="openGameFromMenu()">
+                        Play Quote Game
+                    </button>
+                    <button type="button" class="menu-item" role="menuitem" (click)="openLeaderboardFromMenu()">
+                        View Leaderboard
+                    </button>
+                </div>
+            }
         </div>
+
     </div>
+
+    @if (isHeaderMenuOpen()) {
+        <div class="header-menu--backdrop" (click)="closeHeaderMenu()"></div>
+    }
 
     <div class="td-quotes-overview--container">
         @if (isLoading()) {
@@ -38,11 +74,6 @@
                 </div>
             }
         }
-
-        <div class="overview--extras">
-            <button class="text-action" type="button" (click)="openGame()">Play Quote Game</button>
-            <button class="text-action" type="button" (click)="openLeaderboard()">View Leaderboard</button>
-        </div>
     </div>
 
     <button class="create-fab" type="button" (click)="openCreate()" aria-label="Create quote">
