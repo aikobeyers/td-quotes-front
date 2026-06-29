@@ -37,6 +37,16 @@
                 <mat-icon fontIcon="menu"></mat-icon>
             </button>
 
+            <button
+                class="icon-button sort-button"
+                [class.active]="sortMode() !== 'standard'"
+                type="button"
+                [attr.aria-label]="sortModeLabel()"
+                (click)="cycleSortMode()"
+            >
+                <mat-icon [fontIcon]="sortModeIcon()"></mat-icon>
+            </button>
+
             @if (isHeaderMenuOpen()) {
                 <div class="header-menu" role="menu" aria-label="Overview menu">
                     <button type="button" class="menu-item menu-active-user" role="menuitem" (click)="logoutActiveUser()">
@@ -215,7 +225,7 @@
             <button type="button" class="secondary-button" (click)="closeSecretModal()">Cancel</button>
             <button
                 type="button"
-                class="apply-button"
+                class="primary-button apply-button"
                 [disabled]="!canSendSecretNotification() || isSendingSecretNotification()"
                 (click)="sendSecretNotification()"
             >
