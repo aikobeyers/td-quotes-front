@@ -86,12 +86,26 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isHeaderMenuOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
+  public sortMode = signal<'standard' | 'asc' | 'desc' | 'random'>('standard');
+  public randomOrderRank = signal<Record<string, number>>({});
   public activeUser = signal<{ id: string; name: string } | null>(
     this.loadActiveUser()
   );
   public selectedActiveUserId = signal('');
   public newActiveUserName = '';
   public appliedFilters = signal(this.takeAppliedFiltersSnapshot());
+  public notifTitles = [
+    'Very important notification',
+    'Surprise',
+    'Important message',
+    'Incoming communication',
+  ];
+  public notifBodies = [
+    'Someone added a new quote!',
+    'Check out the latest quote!',
+    'If you don\'t check out the new quote you\'re lame!',
+    'You\'ve got a new quote to read!',
+  ];
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
   public secretNotificationAudience = signal<'all' | 'selected'>('all');
@@ -109,7 +123,95 @@ export class TdQuotesOverviewComponent implements OnInit {
     return new Set(favorites.map((favorite) => favorite._id));
   });
   public displayedQuotes = computed(() => {
-    return this.quotes();
+    const quotes = [...this.quotes()];
+    const mode = this.sortMode();
+
+    if (mode === 'standard') {
+      return quotes;
+    }
+
+    if (mode === 'asc') {
+      return quotes.sort((quoteA, quoteB) => {
+        const parsedDateA = this.parseDateForSort(quoteA.date);
+        const parsedDateB = this.parseDateForSort(quoteB.date);
+
+        if (parsedDateA.isValid !== parsedDateB.isValid) {
+          return parsedDateA.isValid ? -1 : 1;
+        }
+
+        if (!parsedDateA.isValid && !parsedDateB.isValid) {
+          return quoteA.value.localeCompare(quoteB.value);
+        }
+
+        if (parsedDateA.timestamp !== parsedDateB.timestamp) {
+          return parsedDateA.timestamp - parsedDateB.timestamp;
+        }
+
+        return quoteA.value.localeCompare(quoteB.value);
+      });
+    }
+
+    if (mode === 'desc') {
+      return quotes.sort((quoteA, quoteB) => {
+        const parsedDateA = this.parseDateForSort(quoteA.date);
+        const parsedDateB = this.parseDateForSort(quoteB.date);
+
+        if (parsedDateA.isValid !== parsedDateB.isValid) {
+          return parsedDateA.isValid ? -1 : 1;
+        }
+
+        if (!parsedDateA.isValid && !parsedDateB.isValid) {
+          return quoteA.value.localeCompare(quoteB.value);
+        }
+
+        if (parsedDateA.timestamp !== parsedDateB.timestamp) {
+          return parsedDateB.timestamp - parsedDateA.timestamp;
+        }
+
+        return quoteA.value.localeCompare(quoteB.value);
+      });
+    }
+
+    const rank = this.randomOrderRank();
+    return quotes.sort((quoteA, quoteB) => {
+      const rankA = rank[quoteA._id] ?? Number.MAX_SAFE_INTEGER;
+      const rankB = rank[quoteB._id] ?? Number.MAX_SAFE_INTEGER;
+      return rankA - rankB;
+    });
+  });
+  public sortModeIcon = computed(() => {
+    const mode = this.sortMode();
+
+    if (mode === 'asc') {
+      return 'north';
+    }
+
+    if (mode === 'desc') {
+      return 'south';
+    }
+
+    if (mode === 'random') {
+      return 'shuffle';
+    }
+
+    return 'sort';
+  });
+  public sortModeLabel = computed(() => {
+    const mode = this.sortMode();
+
+    if (mode === 'asc') {
+      return 'Sort: ascending';
+    }
+
+    if (mode === 'desc') {
+      return 'Sort: descending';
+    }
+
+    if (mode === 'random') {
+      return 'Sort: random';
+    }
+
+    return 'Sort: standard';
   });
   public activeFilterPills = computed(() => {
     const filters = this.appliedFilters();
@@ -243,6 +345,29 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.filtersComponent.openFilters();
   }
 
+  public cycleSortMode(): void {
+    const currentMode = this.sortMode();
+
+    if (currentMode === 'standard') {
+      this.sortMode.set('asc');
+      return;
+    }
+
+    if (currentMode === 'asc') {
+      this.sortMode.set('desc');
+      return;
+    }
+
+    if (currentMode === 'desc') {
+      this.sortMode.set('random');
+      this.refreshRandomOrder();
+      return;
+    }
+
+    this.sortMode.set('standard');
+    this.randomOrderRank.set({});
+  }
+
   public toggleHeaderMenu(): void {
     this.isHeaderMenuOpen.update((isOpen) => !isOpen);
   }
@@ -337,10 +462,7 @@ export class TdQuotesOverviewComponent implements OnInit {
       return false;
     }
 
-    return (
-      this.secretNotificationTitle.trim().length > 0 &&
-      this.secretNotificationBody.trim().length > 0
-    );
+    return true;
   }
 
   public setSecretNotificationAudience(audience: 'all' | 'selected'): void {
@@ -374,14 +496,20 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
 
     this.isSendingSecretNotification.set(true);
+    const resolvedTitle = this.secretNotificationTitle.trim().length > 0
+      ? this.secretNotificationTitle.trim()
+      : this.pickRandomNotificationCopy(this.notifTitles, 'Very important notification');
+    const resolvedBody = this.secretNotificationBody.trim().length > 0
+      ? this.secretNotificationBody.trim()
+      : this.pickRandomNotificationCopy(this.notifBodies, 'Someone added a new quote!');
     const recipientAuthorIds = this.secretNotificationAudience() === 'selected'
       ? this.secretRecipientAuthorIds()
       : undefined;
 
     this.tdQuotesService
       .sendNewQuotePushNotification(
-        this.secretNotificationTitle.trim(),
-        this.secretNotificationBody.trim(),
+        resolvedTitle,
+        resolvedBody,
         recipientAuthorIds
       )
       .pipe(take(1))
@@ -418,6 +546,11 @@ export class TdQuotesOverviewComponent implements OnInit {
         .subscribe({
           next: (quotes) => {
             this.store.setQuotes(quotes);
+
+            if (this.sortMode() === 'random') {
+              this.refreshRandomOrder(quotes);
+            }
+
             this.isLoading.set(false);
           },
           error: () => {
@@ -577,8 +710,8 @@ export class TdQuotesOverviewComponent implements OnInit {
 
         this.tdQuotesService
           .sendNewQuotePushNotification(
-            'Very important notification',
-            'Someone added a new quote!'
+            this.pickRandomNotificationCopy(this.notifTitles, 'Very important notification'),
+            this.pickRandomNotificationCopy(this.notifBodies, 'Someone added a new quote!')
           )
           .pipe(take(1))
           .subscribe({
@@ -604,5 +737,75 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   private formatScopeLabel(scope: 'all' | 'recent' | 'favorites'): string {
     return scope.charAt(0).toUpperCase() + scope.slice(1);
+  }
+
+  private pickRandomNotificationCopy(options: string[], fallback: string): string {
+    const validOptions = options.filter((option) => option.trim().length > 0);
+    if (validOptions.length === 0) {
+      return fallback;
+    }
+
+    const randomIndex = Math.floor(Math.random() * validOptions.length);
+    return validOptions[randomIndex];
+  }
+
+  private parseDateForSort(dateValue: string | null | undefined): {
+    isValid: boolean;
+    timestamp: number;
+  } {
+    const rawValue = typeof dateValue === 'string' ? dateValue.trim() : '';
+    if (!rawValue) {
+      return {
+        isValid: false,
+        timestamp: 0,
+      };
+    }
+
+    const ddMmYyyyMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(rawValue);
+    if (ddMmYyyyMatch) {
+      const day = Number(ddMmYyyyMatch[1]);
+      const month = Number(ddMmYyyyMatch[2]);
+      const year = Number(ddMmYyyyMatch[3]);
+      const timestamp = Date.UTC(year, month - 1, day);
+
+      if (!Number.isNaN(timestamp)) {
+        return {
+          isValid: true,
+          timestamp,
+        };
+      }
+    }
+
+    const parsed = Date.parse(rawValue);
+    if (Number.isNaN(parsed)) {
+      return {
+        isValid: false,
+        timestamp: 0,
+      };
+    }
+
+    return {
+      isValid: true,
+      timestamp: parsed,
+    };
+  }
+
+  private refreshRandomOrder(quotesOverride?: TdQuoteWithId[]): void {
+    const ids = (quotesOverride ?? this.quotes()).map((quote) => quote._id);
+    const shuffledIds = [...ids];
+
+    for (let index = shuffledIds.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      const currentId = shuffledIds[index];
+      shuffledIds[index] = shuffledIds[randomIndex];
+      shuffledIds[randomIndex] = currentId;
+    }
+
+    const rank: Record<string, number> = {};
+    shuffledIds.forEach((id, index) => {
+      rank[id] = index;
+    });
+
+    this.randomOrderRank.set(rank);
   }
 }

@@ -1,5 +1,8 @@
 .td-quotes-overview--wrapper {
     position: relative;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
     height: 100dvh;
     overflow-y: auto;
     overscroll-behavior-y: contain;
@@ -105,8 +108,11 @@
         .header--actions {
             justify-self: end;
             position: relative;
-            display: flex;
-            gap: 10px;
+            display: grid;
+            grid-template-rows: 52px 52px;
+            row-gap: 10px;
+            justify-items: end;
+            align-content: start;
 
             .icon-button {
                 width: 52px;
@@ -124,6 +130,14 @@
                     font-size: 28px;
                     width: 28px;
                     height: 28px;
+                }
+            }
+
+            .sort-button {
+                &.active {
+                    border-color: #b7c2d3;
+                    background: #e8edf5;
+                    color: #20324a;
                 }
             }
 
@@ -185,7 +199,7 @@
 
     .create-fab {
         position: fixed;
-        right: 24px;
+        right: max(24px, calc((100vw - min(900px, 100vw)) / 2 + 24px));
         bottom: 24px;
         z-index: 30;
         width: 56px;
@@ -503,6 +517,28 @@
 .secret-recipient-empty {
     font-size: 13px;
     color: #66656d;
+}
+
+.primary-button {
+    border-radius: 12px;
+    padding: 11px 16px;
+    border: 1px solid #c2cad7;
+    background: linear-gradient(180deg, #e8edf5 0%, #dde5f1 100%);
+    color: #24374f;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: filter 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover:not(:disabled) {
+        filter: brightness(0.98);
+        box-shadow: 0 4px 10px rgba(23, 38, 59, 0.12);
+    }
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
 }
 
 .secret-modal--footer {
