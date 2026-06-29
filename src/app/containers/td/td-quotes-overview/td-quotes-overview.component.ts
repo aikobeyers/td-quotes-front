@@ -26,6 +26,7 @@ import { TdQuoteWithId } from '../../../models/TdQuote';
 import { TdQuoteAuthorWithId } from '../../../models/TdQuoteAuthor';
 import { TdQuoteGameComponent } from '../td-quote-game/td-quote-game.component';
 import { TdQuotesLeaderboardComponent } from '../td-quotes-leaderboard/td-quotes-leaderboard.component';
+import { PwaInstallService } from '../../../services/pwa-install';
 
 @Component({
   selector: 'app-td-quotes-overview',
@@ -62,6 +63,10 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   @ViewChild('headerActions')
   private headerActionsElement?: ElementRef<HTMLElement>;
+
+    private readonly pwaInstallService = inject(PwaInstallService);
+
+  readonly canInstall = this.pwaInstallService.canInstall;
 
   private readonly tdQuotesService = inject(TdQuotesService);
   private readonly pushNotificationsService = inject(PushNotificationsService);
@@ -269,37 +274,10 @@ export class TdQuotesOverviewComponent implements OnInit {
     );
   }
 
-  public confirmActiveUser(): void {
-    if (this.isSavingActiveUser()) {
-      return;
-    }
-
-    const existingUserId = this.selectedActiveUserId().trim();
+  public createNewUser(): void {
     const customUserName = this.newActiveUserName.trim();
-    this.activeUserSaveError.set('');
 
-    let resolvedUser: { id: string; name: string } | null = null;
-
-    if (existingUserId) {
-      const existingUser = this.authors().find((author) => author._id === existingUserId);
-      if (existingUser) {
-        resolvedUser = {
-          id: existingUser._id,
-          name: existingUser.name,
-        };
-      }
-    } else if (customUserName) {
-      const existingAuthorWithSameName = this.authors().find(
-        (author) => author.name.trim().toLowerCase() === customUserName.toLowerCase()
-      );
-
-      if (existingAuthorWithSameName) {
-        resolvedUser = {
-          id: existingAuthorWithSameName._id,
-          name: existingAuthorWithSameName.name,
-        };
-      } else {
-        this.isSavingActiveUser.set(true);
+    this.isSavingActiveUser.set(true);
         this.tdQuotesService
           .createAuthor(customUserName)
           .pipe(take(1))
@@ -313,10 +291,8 @@ export class TdQuotesOverviewComponent implements OnInit {
                 this.store.addAuthor(createdAuthor);
               }
 
-              this.finalizeActiveUserSelection({
-                id: createdAuthor._id,
-                name: createdAuthor.name,
-              });
+              this.newActiveUserName = '';
+              this.activeUserSaveError.set('');
               this.isSavingActiveUser.set(false);
             },
             error: () => {
@@ -324,8 +300,65 @@ export class TdQuotesOverviewComponent implements OnInit {
               this.activeUserSaveError.set('Could not save user right now. Please try again.');
             },
           });
-        return;
+  }
+
+  public confirmActiveUser(): void {
+    if (this.isSavingActiveUser()) {
+      return;
+    }
+
+    const existingUserId = this.selectedActiveUserId().trim();
+    // const customUserName = this.newActiveUserName.trim();
+    this.activeUserSaveError.set('');
+
+    let resolvedUser: { id: string; name: string } | null = null;
+
+    if (existingUserId) {
+      const existingUser = this.authors().find((author) => author._id === existingUserId);
+      if (existingUser) {
+        resolvedUser = {
+          id: existingUser._id,
+          name: existingUser.name,
+        };
       }
+    // } else if (customUserName) {
+    //   const existingAuthorWithSameName = this.authors().find(
+    //     (author) => author.name.trim().toLowerCase() === customUserName.toLowerCase()
+    //   );
+
+    //   if (existingAuthorWithSameName) {
+    //     resolvedUser = {
+    //       id: existingAuthorWithSameName._id,
+    //       name: existingAuthorWithSameName.name,
+    //     };
+    //   } else {
+    //     // this.isSavingActiveUser.set(true);
+    //     // this.tdQuotesService
+    //     //   .createAuthor(customUserName)
+    //     //   .pipe(take(1))
+    //     //   .subscribe({
+    //     //     next: (createdAuthor) => {
+    //     //       const authorExists = this.authors().some(
+    //     //         (author) => author._id === createdAuthor._id
+    //     //       );
+
+    //     //       if (!authorExists) {
+    //     //         this.store.addAuthor(createdAuthor);
+    //     //       }
+
+    //     //       this.finalizeActiveUserSelection({
+    //     //         id: createdAuthor._id,
+    //     //         name: createdAuthor.name,
+    //     //       });
+    //     //       this.isSavingActiveUser.set(false);
+    //     //     },
+    //     //     error: () => {
+    //     //       this.isSavingActiveUser.set(false);
+    //     //       this.activeUserSaveError.set('Could not save user right now. Please try again.');
+    //     //     },
+    //     //   });
+    //     return;
+    //   }
     }
 
     if (!resolvedUser) {
@@ -720,6 +753,10 @@ export class TdQuotesOverviewComponent implements OnInit {
             },
           });
       });
+  }
+
+  public  installPwa(): void {
+    void this.pwaInstallService.install();
   }
 
   private takeAppliedFiltersSnapshot(): {
