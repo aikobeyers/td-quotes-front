@@ -10,6 +10,7 @@ import {
   HostListener,
 } from '@angular/core';
 import { TdQuotesService } from '../../../services/td-quotes.service';
+import { PushNotificationsService } from '../../../services/push-notifications.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TdQuoteCardComponent } from './components/td-quote-card/td-quote-card.component';
 import { CommonModule } from '@angular/common';
@@ -63,6 +64,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   private headerActionsElement?: ElementRef<HTMLElement>;
 
   private readonly tdQuotesService = inject(TdQuotesService);
+  private readonly pushNotificationsService = inject(PushNotificationsService);
   private readonly titleService = inject(Title);
   private readonly store = inject(FiltersStore);
   private readonly secretTapThresholdMs = 200;
@@ -92,6 +94,8 @@ export class TdQuotesOverviewComponent implements OnInit {
   public appliedFilters = signal(this.takeAppliedFiltersSnapshot());
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
+  public secretNotificationAudience = signal<'all' | 'selected'>('all');
+  public secretRecipientAuthorIds = signal<string[]>([]);
   public activeAuthor = computed(() => {
     const activeUser = this.activeUser();
     if (!activeUser) {
@@ -120,6 +124,9 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
 
     return pills;
+  });
+  public targetableRecipientAuthors = computed(() => {
+    return this.authors().filter((author) => this.isObjectId(author._id));
   });
 
   public ngOnInit(): void {
@@ -275,6 +282,7 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.closeHeaderMenu();
     this.activeUser.set(null);
     this.clearCookie(this.activeUserStorageKey);
+    this.pushNotificationsService.syncSubscriptionWithActiveUser();
     this.openActiveUserModalIfNeeded();
   }
 
@@ -311,6 +319,8 @@ export class TdQuotesOverviewComponent implements OnInit {
   public openSecretModal(): void {
     this.secretNotificationTitle = '';
     this.secretNotificationBody = '';
+    this.secretNotificationAudience.set('all');
+    this.secretRecipientAuthorIds.set([]);
     this.isSecretModalOpen.set(true);
   }
 
@@ -320,10 +330,42 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   public canSendSecretNotification(): boolean {
+    if (
+      this.secretNotificationAudience() === 'selected' &&
+      this.secretRecipientAuthorIds().length === 0
+    ) {
+      return false;
+    }
+
     return (
       this.secretNotificationTitle.trim().length > 0 &&
       this.secretNotificationBody.trim().length > 0
     );
+  }
+
+  public setSecretNotificationAudience(audience: 'all' | 'selected'): void {
+    this.secretNotificationAudience.set(audience);
+    if (audience === 'all') {
+      this.secretRecipientAuthorIds.set([]);
+    }
+  }
+
+  public isSecretRecipientSelected(authorId: string): boolean {
+    return this.secretRecipientAuthorIds().includes(authorId);
+  }
+
+  public toggleSecretRecipient(authorId: string): void {
+    if (!this.isObjectId(authorId)) {
+      return;
+    }
+
+    this.secretRecipientAuthorIds.update((ids) => {
+      if (ids.includes(authorId)) {
+        return ids.filter((id) => id !== authorId);
+      }
+
+      return [...ids, authorId];
+    });
   }
 
   public sendSecretNotification(): void {
@@ -332,10 +374,15 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
 
     this.isSendingSecretNotification.set(true);
+    const recipientAuthorIds = this.secretNotificationAudience() === 'selected'
+      ? this.secretRecipientAuthorIds()
+      : undefined;
+
     this.tdQuotesService
       .sendNewQuotePushNotification(
         this.secretNotificationTitle.trim(),
-        this.secretNotificationBody.trim()
+        this.secretNotificationBody.trim(),
+        recipientAuthorIds
       )
       .pipe(take(1))
       .subscribe({
@@ -423,6 +470,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   private finalizeActiveUserSelection(user: { id: string; name: string }): void {
     this.activeUser.set(user);
     this.persistActiveUser(user);
+    this.pushNotificationsService.syncSubscriptionWithActiveUser();
     this.isActiveUserModalOpen.set(false);
     this.selectedActiveUserId.set('');
     this.newActiveUserName = '';

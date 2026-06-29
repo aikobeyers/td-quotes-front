@@ -82,14 +82,25 @@ export class TdQuotesService {
     return this.http.get<{ publicKey: string }>(`${BASE_URL}/push/public-key`);
   }
 
-  public registerPushSubscription(subscription: PushSubscriptionJSON): Observable<void> {
-    return this.http.post<void>(`${BASE_URL}/push/subscribe`, { subscription });
+  public registerPushSubscription(
+    subscription: PushSubscriptionJSON,
+    tdQuoteAuthorId?: string | null
+  ): Observable<void> {
+    return this.http.post<void>(`${BASE_URL}/push/subscribe`, {
+      subscription,
+      tdQuoteAuthorId: tdQuoteAuthorId ?? null,
+    });
   }
 
-  public sendNewQuotePushNotification(title: string, body: string): Observable<void> {
+  public sendNewQuotePushNotification(
+    title: string,
+    body: string,
+    recipientAuthorIds?: string[]
+  ): Observable<void> {
     return this.http.post<void>(`${BASE_URL}/push/broadcast`, {
       title,
       body,
+      recipientAuthorIds: recipientAuthorIds?.length ? recipientAuthorIds : undefined,
     });
   }
 

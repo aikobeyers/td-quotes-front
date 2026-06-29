@@ -10,6 +10,7 @@ import { TdQuotesService } from './td-quotes.service';
 export class PushNotificationsService {
   private readonly swPush = inject(SwPush);
   private readonly tdQuotesService = inject(TdQuotesService);
+  private readonly activeUserStorageKey = 'td_quotes_active_user';
 
   private initialized = false;
 
@@ -75,6 +76,14 @@ export class PushNotificationsService {
     }
   }
 
+  public syncSubscriptionWithActiveUser(): void {
+    if (!this.notificationsSupported() || Notification.permission !== 'granted') {
+      return;
+    }
+
+    void this.ensureSubscription();
+  }
+
   private async ensureSubscription(): Promise<void> {
     if (this.ensureSubscriptionInProgress) {
       return;
@@ -100,7 +109,10 @@ export class PushNotificationsService {
 
       await firstValueFrom(
         this.tdQuotesService
-          .registerPushSubscription(subscription.toJSON())
+          .registerPushSubscription(
+            subscription.toJSON(),
+            this.loadActiveUserIdFromCookie()
+          )
           .pipe(take(1)),
       );
 
@@ -111,5 +123,34 @@ export class PushNotificationsService {
     } finally {
       this.ensureSubscriptionInProgress = false;
     }
+  }
+
+  private loadActiveUserIdFromCookie(): string | null {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const prefix = `${this.activeUserStorageKey}=`;
+    const parts = document.cookie.split(';');
+
+    for (const part of parts) {
+      const cookie = part.trim();
+      if (!cookie.startsWith(prefix)) {
+        continue;
+      }
+
+      const rawValue = decodeURIComponent(cookie.slice(prefix.length));
+
+      try {
+        const parsed = JSON.parse(rawValue) as { id?: unknown };
+        if (typeof parsed.id === 'string' && /^[a-f\d]{24}$/i.test(parsed.id.trim())) {
+          return parsed.id.trim();
+        }
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
   }
 }

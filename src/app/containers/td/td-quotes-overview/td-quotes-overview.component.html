@@ -163,6 +163,52 @@
                 maxlength="500"
                 rows="5"
             ></textarea>
+
+            <div class="secret-recipient-section">
+                <div class="secret-label">Recipients</div>
+
+                <div class="secret-recipient-modes" role="radiogroup" aria-label="Push notification recipients">
+                    <button
+                        type="button"
+                        class="secret-recipient-mode"
+                        [class.selected]="secretNotificationAudience() === 'all'"
+                        [attr.aria-pressed]="secretNotificationAudience() === 'all'"
+                        (click)="setSecretNotificationAudience('all')"
+                    >
+                        Everyone
+                    </button>
+
+                    <button
+                        type="button"
+                        class="secret-recipient-mode"
+                        [class.selected]="secretNotificationAudience() === 'selected'"
+                        [attr.aria-pressed]="secretNotificationAudience() === 'selected'"
+                        (click)="setSecretNotificationAudience('selected')"
+                    >
+                        Selected Users
+                    </button>
+                </div>
+
+                @if (secretNotificationAudience() === 'selected') {
+                    <div class="secret-recipient-authors">
+                        @for (author of targetableRecipientAuthors(); track author._id) {
+                            <button
+                                type="button"
+                                class="secret-recipient-author"
+                                [class.selected]="isSecretRecipientSelected(author._id)"
+                                [attr.aria-pressed]="isSecretRecipientSelected(author._id)"
+                                (click)="toggleSecretRecipient(author._id)"
+                            >
+                                {{ author.name }}
+                            </button>
+                        }
+
+                        @if (targetableRecipientAuthors().length === 0) {
+                            <div class="secret-recipient-empty">No saved users available yet.</div>
+                        }
+                    </div>
+                }
+            </div>
         </div>
 
         <div class="secret-modal--footer">
