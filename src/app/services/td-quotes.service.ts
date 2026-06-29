@@ -61,6 +61,19 @@ export class TdQuotesService {
     return this.http.put<TdQuoteAuthorWithId>(`${BASE_URL}/tdquotes/authors/${authorId}/score`, {});
   }
 
+  public addFavoriteQuote(authorId: string, quoteId: string): Observable<TdQuoteAuthorWithId> {
+    return this.http.post<TdQuoteAuthorWithId>(
+      `${BASE_URL}/tdquotes/authors/${authorId}/favorites`,
+      { quoteId }
+    );
+  }
+
+  public removeFavoriteQuote(authorId: string, quoteId: string): Observable<TdQuoteAuthorWithId> {
+    return this.http.delete<TdQuoteAuthorWithId>(
+      `${BASE_URL}/tdquotes/authors/${authorId}/favorites/${quoteId}`
+    );
+  }
+
   public getPushPublicKey(): Observable<{ publicKey: string }> {
     return this.http.get<{ publicKey: string }>(`${BASE_URL}/push/public-key`);
   }

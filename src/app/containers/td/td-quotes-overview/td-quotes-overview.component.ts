@@ -70,7 +70,6 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public quotes = this.store.quotes;
   private readonly activeUserStorageKey = 'td_quotes_active_user';
-  private readonly favoriteStorageKey = 'td_quotes_favorites';
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
@@ -83,10 +82,21 @@ export class TdQuotesOverviewComponent implements OnInit {
   );
   public selectedActiveUserId = signal('');
   public newActiveUserName = '';
-  public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
   public appliedFilters = signal(this.takeAppliedFiltersSnapshot());
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
+  public activeAuthor = computed(() => {
+    const activeUser = this.activeUser();
+    if (!activeUser) {
+      return null;
+    }
+
+    return this.authors().find((author) => author._id === activeUser.id) ?? null;
+  });
+  public favoriteQuoteIds = computed(() => {
+    const favorites = this.activeAuthor()?.favorites ?? [];
+    return new Set(favorites.map((favorite) => favorite._id));
+  });
   public displayedQuotes = computed(() => {
     return this.quotes();
   });
@@ -315,35 +325,31 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   public isFavorite(quoteId: string): boolean {
-    return this.favoriteQuoteIds().includes(quoteId);
+    return this.favoriteQuoteIds().has(quoteId);
   }
 
   public toggleFavorite(quoteId: string): void {
-    const currentFavorites = this.favoriteQuoteIds();
-    const favorites = currentFavorites.includes(quoteId)
-      ? currentFavorites.filter((id) => id !== quoteId)
-      : [...currentFavorites, quoteId];
-
-    this.favoriteQuoteIds.set(favorites);
-    this.persistFavorites(favorites);
-  }
-
-  private loadFavorites(): string[] {
-    if (typeof document === 'undefined') {
-      return [];
+    const activeUser = this.activeUser();
+    if (!activeUser || !this.isObjectId(activeUser.id)) {
+      return;
     }
 
-    const storedValue = this.readCookie(this.favoriteStorageKey);
-    if (!storedValue) {
-      return [];
-    }
+    const request$ = this.isFavorite(quoteId)
+      ? this.tdQuotesService.removeFavoriteQuote(activeUser.id, quoteId)
+      : this.tdQuotesService.addFavoriteQuote(activeUser.id, quoteId);
 
-    try {
-      const parsedValue = JSON.parse(storedValue);
-      return Array.isArray(parsedValue) ? parsedValue : [];
-    } catch {
-      return [];
-    }
+    request$.pipe(take(1)).subscribe({
+      next: (updatedAuthor) => {
+        this.store.updateAuthor(updatedAuthor);
+
+        if (this.store.filters().scope === 'favorites') {
+          this.getQuotes();
+        }
+      },
+      error: () => {
+        // No-op so UI remains responsive when favorite mutation fails.
+      },
+    });
   }
 
   private openActiveUserModalIfNeeded(): void {
@@ -408,16 +414,6 @@ export class TdQuotesOverviewComponent implements OnInit {
     document.cookie = `${this.activeUserStorageKey}=${encodedValue}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
   }
 
-  private persistFavorites(favorites: string[]): void {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    const encodedValue = encodeURIComponent(JSON.stringify(favorites));
-    const maxAgeSeconds = 60 * 60 * 24 * 365;
-    document.cookie = `${this.favoriteStorageKey}=${encodedValue}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
-  }
-
   private readCookie(name: string): string | null {
     if (typeof document === 'undefined') {
       return null;
@@ -435,6 +431,10 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
 
     return null;
+  }
+
+  private isObjectId(value: string): boolean {
+    return /^[a-f\d]{24}$/i.test(value.trim());
   }
 
   public createQuote(quoteData: {
