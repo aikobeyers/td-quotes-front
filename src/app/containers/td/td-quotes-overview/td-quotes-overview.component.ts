@@ -20,6 +20,7 @@ import { TdQuoteFiltersComponent } from '../td-quote-filters/td-quote-filters.co
 import { take } from 'rxjs';
 import { TdQuoteCreateComponent } from '../td-quote-create/td-quote-create.component';
 import { TdQuoteWithId } from '../../../models/TdQuote';
+import { TdQuoteAuthorWithId } from '../../../models/TdQuoteAuthor';
 import { TdQuoteGameComponent } from '../td-quote-game/td-quote-game.component';
 import { TdQuotesLeaderboardComponent } from '../td-quotes-leaderboard/td-quotes-leaderboard.component';
 
@@ -65,15 +66,23 @@ export class TdQuotesOverviewComponent implements OnInit {
   private brandTapCount = 0;
   private lastBrandTapTime = 0;
   private lastTouchTapTime = 0;
+  public authors = this.store.authors;
 
   public quotes = this.store.quotes;
+  private readonly activeUserStorageKey = 'td_quotes_active_user';
   private readonly favoriteStorageKey = 'td_quotes_favorites';
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
+  public isActiveUserModalOpen = signal(false);
   public isHeaderMenuOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
+  public activeUser = signal<{ id: string; name: string } | null>(
+    this.loadActiveUser()
+  );
+  public selectedActiveUserId = signal('');
+  public newActiveUserName = '';
   public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
   public appliedFilters = signal(this.takeAppliedFiltersSnapshot());
   public secretNotificationTitle = '';
@@ -101,10 +110,78 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.tdQuotesService
       .getAuthors()
       .pipe(take(1))
-      .subscribe((authors) => {
-        this.store.setAuthors(authors);
+      .subscribe({
+        next: (authors) => {
+          this.store.setAuthors(authors);
+          this.openActiveUserModalIfNeeded();
+        },
+        error: () => {
+          this.openActiveUserModalIfNeeded();
+        },
       });
     this.getQuotes();
+  }
+
+  public selectActiveUser(author: TdQuoteAuthorWithId): void {
+    this.selectedActiveUserId.set(author._id);
+    this.newActiveUserName = '';
+  }
+
+  public onNewActiveUserInput(name: string): void {
+    this.newActiveUserName = name;
+    if (name.trim().length > 0) {
+      this.selectedActiveUserId.set('');
+    }
+  }
+
+  public canConfirmActiveUser(): boolean {
+    return (
+      this.selectedActiveUserId().trim().length > 0 ||
+      this.newActiveUserName.trim().length > 0
+    );
+  }
+
+  public confirmActiveUser(): void {
+    const existingUserId = this.selectedActiveUserId().trim();
+    const customUserName = this.newActiveUserName.trim();
+
+    let resolvedUser: { id: string; name: string } | null = null;
+
+    if (existingUserId) {
+      const existingUser = this.authors().find((author) => author._id === existingUserId);
+      if (existingUser) {
+        resolvedUser = {
+          id: existingUser._id,
+          name: existingUser.name,
+        };
+      }
+    } else if (customUserName) {
+      resolvedUser = {
+        id: `local-${Date.now()}`,
+        name: customUserName,
+      };
+    }
+
+    if (!resolvedUser) {
+      return;
+    }
+
+    this.activeUser.set(resolvedUser);
+    this.persistActiveUser(resolvedUser);
+    this.isActiveUserModalOpen.set(false);
+
+    const userExists = this.authors().some(
+      (author) => author._id === resolvedUser.id
+    );
+
+    if (!userExists && customUserName.length > 0) {
+      const localAuthor: TdQuoteAuthorWithId = {
+        _id: resolvedUser.id,
+        name: resolvedUser.name,
+        score: 0,
+      };
+      this.store.addAuthor(localAuthor);
+    }
   }
 
   public onScroll(event: Event): void {
@@ -267,6 +344,68 @@ export class TdQuotesOverviewComponent implements OnInit {
     } catch {
       return [];
     }
+  }
+
+  private openActiveUserModalIfNeeded(): void {
+    if (this.activeUser()) {
+      return;
+    }
+
+    this.selectedActiveUserId.set('');
+    this.newActiveUserName = '';
+    this.isActiveUserModalOpen.set(true);
+  }
+
+  private loadActiveUser(): { id: string; name: string } | null {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const storedValue = this.readCookie(this.activeUserStorageKey);
+    if (!storedValue) {
+      return null;
+    }
+
+    try {
+      const parsedValue = JSON.parse(storedValue) as {
+        id?: unknown;
+        name?: unknown;
+      };
+
+      if (
+        typeof parsedValue.id === 'string' &&
+        parsedValue.id.trim().length > 0 &&
+        typeof parsedValue.name === 'string' &&
+        parsedValue.name.trim().length > 0
+      ) {
+        return {
+          id: parsedValue.id,
+          name: parsedValue.name,
+        };
+      }
+    } catch {
+      // Fall through and try legacy string cookie format.
+    }
+
+    const legacyName = storedValue.trim();
+    if (!legacyName) {
+      return null;
+    }
+
+    return {
+      id: `legacy-${legacyName.toLowerCase().replace(/\s+/g, '-')}`,
+      name: legacyName,
+    };
+  }
+
+  private persistActiveUser(user: { id: string; name: string }): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const encodedValue = encodeURIComponent(JSON.stringify(user));
+    const maxAgeSeconds = 60 * 60 * 24 * 365;
+    document.cookie = `${this.activeUserStorageKey}=${encodedValue}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
   }
 
   private persistFavorites(favorites: string[]): void {

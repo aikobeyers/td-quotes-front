@@ -39,6 +39,10 @@
 
             @if (isHeaderMenuOpen()) {
                 <div class="header-menu" role="menu" aria-label="Overview menu">
+                    <div class="menu-active-user">
+                        <span class="menu-active-user--label">User</span>
+                        <span class="menu-active-user--value">{{ activeUser()?.name || 'Unknown' }}</span>
+                    </div>
                     <button type="button" class="menu-item" role="menuitem" (click)="openGameFromMenu()">
                         Play Quote Game
                     </button>
@@ -79,6 +83,48 @@
     <button class="create-fab" type="button" (click)="openCreate()" aria-label="Create quote">
         <mat-icon fontIcon="add"></mat-icon>
     </button>
+</div>
+
+<div class="active-user-modal--backdrop" [ngClass]="{ open: isActiveUserModalOpen(), closed: !isActiveUserModalOpen() }">
+    <div class="active-user-modal--box">
+        <div class="active-user-modal--title">Who's using the app?</div>
+
+        <div class="active-user-options">
+            @for (author of authors(); track author._id) {
+                <button
+                    type="button"
+                    class="active-user-pill"
+                    [class.selected]="selectedActiveUserId() === author._id"
+                    (click)="selectActiveUser(author)"
+                >
+                    {{ author.name }}
+                </button>
+            }
+        </div>
+
+        <div class="active-user-new">
+            <label for="active-user-new-input">Add someone new</label>
+            <input
+                id="active-user-new-input"
+                type="text"
+                [value]="newActiveUserName"
+                maxlength="60"
+                autocomplete="off"
+                (input)="onNewActiveUserInput($any($event.target).value)"
+            />
+        </div>
+
+        <div class="active-user-modal--footer">
+            <button
+                class="apply-button"
+                type="button"
+                [disabled]="!canConfirmActiveUser()"
+                (click)="confirmActiveUser()"
+            >
+                Confirm
+            </button>
+        </div>
+    </div>
 </div>
 
 <div

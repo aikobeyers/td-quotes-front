@@ -4,7 +4,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { TdQuoteWithId } from '../models/TdQuote';
 import { TdQuoteAuthorWithId } from '../models/TdQuoteAuthor';
 import { FiltersStore } from '../stores/filters.store';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 
 const BASE_URL: string = environment.baseUrl;
 
@@ -14,6 +14,7 @@ const BASE_URL: string = environment.baseUrl;
 })
 export class TdQuotesService {
   private readonly filtersStore = inject(FiltersStore);
+  private readonly activeUserStorageKey = 'td_quotes_active_user';
  
   constructor(private readonly http: HttpClient) { }
 
@@ -26,6 +27,16 @@ export class TdQuotesService {
     const filters = this.filtersStore.filters();
 
     params = params.set('scope', filters.scope);
+
+    if (filters.scope === 'favorites') {
+      const activeUser = this.loadActiveUserFromCookie();
+
+      if (!activeUser?.id) {
+        return of([] as TdQuoteWithId[]);
+      }
+
+      params = params.set('userId', activeUser.id);
+    }
 
     if (filters.by.length > 0) {
       params = params.set('by', filters.by.join(','));
@@ -63,5 +74,58 @@ export class TdQuotesService {
       title,
       body,
     });
+  }
+
+  private loadActiveUserFromCookie(): { id: string; name: string } | null {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const storedValue = this.readCookie(this.activeUserStorageKey);
+    if (!storedValue) {
+      return null;
+    }
+
+    try {
+      const parsedValue = JSON.parse(storedValue) as {
+        id?: unknown;
+        name?: unknown;
+      };
+
+      if (
+        typeof parsedValue.id === 'string' &&
+        parsedValue.id.trim().length > 0 &&
+        typeof parsedValue.name === 'string' &&
+        parsedValue.name.trim().length > 0
+      ) {
+        return {
+          id: parsedValue.id,
+          name: parsedValue.name,
+        };
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private readCookie(name: string): string | null {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const prefix = `${name}=`;
+    const parts = document.cookie.split(';');
+
+    for (const part of parts) {
+      const cookie = part.trim();
+      if (cookie.startsWith(prefix)) {
+        const value = cookie.slice(prefix.length);
+        return decodeURIComponent(value);
+      }
+    }
+
+    return null;
   }
 }
