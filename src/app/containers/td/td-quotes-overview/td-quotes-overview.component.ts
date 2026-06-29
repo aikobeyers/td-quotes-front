@@ -75,6 +75,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isSendingSecretNotification = signal(false);
   public activeTab = signal<'all' | 'recent' | 'favorites'>('all');
   public favoriteQuoteIds = signal<string[]>(this.loadFavorites());
+  public recentQuotes = signal<TdQuoteWithId[]>([]);
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
   public displayedQuotes = computed(() => {
@@ -87,12 +88,7 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
 
     if (tab === 'recent') {
-      return quoteList
-        .filter((quote) => this.parseDate(quote.date) !== null)
-        .sort((a, b) => {
-          return (this.parseDate(b.date) ?? 0) - (this.parseDate(a.date) ?? 0);
-        })
-        .slice(0, 10);
+      return this.recentQuotes();
     }
 
     return quoteList;
@@ -215,6 +211,27 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public setActiveTab(tab: 'all' | 'recent' | 'favorites'): void {
     this.activeTab.set(tab);
+
+    if (tab === 'recent') {
+      this.getRecentQuotes();
+    }
+  }
+
+  private getRecentQuotes(): void {
+    this.isLoading.set(true);
+    this.tdQuotesService
+      .getRecentTdQuotes()
+      .pipe(take(1))
+      .subscribe({
+        next: (quotes) => {
+          this.recentQuotes.set(quotes);
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.recentQuotes.set([]);
+          this.isLoading.set(false);
+        },
+      });
   }
 
   public isFavorite(quoteId: string): boolean {
@@ -278,25 +295,6 @@ export class TdQuotesOverviewComponent implements OnInit {
     return null;
   }
 
-  private parseDate(date: string): number | null {
-    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(date);
-    if (!match) {
-      return null;
-    }
-
-    const day = Number(match[1]);
-    const month = Number(match[2]);
-    const year = Number(match[3]);
-
-    const parsedDate = new Date(year, month - 1, day);
-    const isSameDate =
-      parsedDate.getFullYear() === year &&
-      parsedDate.getMonth() === month - 1 &&
-      parsedDate.getDate() === day;
-
-    return isSameDate ? parsedDate.getTime() : null;
-  }
-
   public createQuote(quoteData: {
     value: string;
     date: string;
@@ -323,6 +321,10 @@ export class TdQuotesOverviewComponent implements OnInit {
               // No-op so quote creation never fails due to notification issues.
             },
           });
+
+        if (this.activeTab() === 'recent') {
+          this.getRecentQuotes();
+        }
       });
   }
 }

@@ -36,6 +36,10 @@ export class TdQuotesService {
     return this.http.get<TdQuoteWithId[]>(`${BASE_URL}/tdquotes/get`, { params });
   }
 
+  public getRecentTdQuotes(): Observable<TdQuoteWithId[]> {
+    return this.http.get<TdQuoteWithId[]>(`${BASE_URL}/tdquotes/recent`);
+  }
+
   public createQuote(req: {value: string, date: string, by: string | undefined | null, newAuthor: string| undefined | null}): Observable<TdQuoteWithId> {
     return this.http.post<TdQuoteWithId>(`${BASE_URL}/tdquotes/create`, req);
   }
