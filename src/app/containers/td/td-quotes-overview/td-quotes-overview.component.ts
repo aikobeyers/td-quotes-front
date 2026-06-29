@@ -79,6 +79,8 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isLoading = signal(false);
   public hasScrolled = signal(false);
   public isActiveUserModalOpen = signal(false);
+  public isSavingActiveUser = signal(false);
+  public activeUserSaveError = signal('');
   public isHeaderMenuOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
@@ -144,6 +146,8 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public onNewActiveUserInput(name: string): void {
     this.newActiveUserName = name;
+    this.activeUserSaveError.set('');
+
     if (name.trim().length > 0) {
       this.selectedActiveUserId.set('');
     }
@@ -157,8 +161,13 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   public confirmActiveUser(): void {
+    if (this.isSavingActiveUser()) {
+      return;
+    }
+
     const existingUserId = this.selectedActiveUserId().trim();
     const customUserName = this.newActiveUserName.trim();
+    this.activeUserSaveError.set('');
 
     let resolvedUser: { id: string; name: string } | null = null;
 
@@ -171,32 +180,50 @@ export class TdQuotesOverviewComponent implements OnInit {
         };
       }
     } else if (customUserName) {
-      resolvedUser = {
-        id: `local-${Date.now()}`,
-        name: customUserName,
-      };
+      const existingAuthorWithSameName = this.authors().find(
+        (author) => author.name.trim().toLowerCase() === customUserName.toLowerCase()
+      );
+
+      if (existingAuthorWithSameName) {
+        resolvedUser = {
+          id: existingAuthorWithSameName._id,
+          name: existingAuthorWithSameName.name,
+        };
+      } else {
+        this.isSavingActiveUser.set(true);
+        this.tdQuotesService
+          .createAuthor(customUserName)
+          .pipe(take(1))
+          .subscribe({
+            next: (createdAuthor) => {
+              const authorExists = this.authors().some(
+                (author) => author._id === createdAuthor._id
+              );
+
+              if (!authorExists) {
+                this.store.addAuthor(createdAuthor);
+              }
+
+              this.finalizeActiveUserSelection({
+                id: createdAuthor._id,
+                name: createdAuthor.name,
+              });
+              this.isSavingActiveUser.set(false);
+            },
+            error: () => {
+              this.isSavingActiveUser.set(false);
+              this.activeUserSaveError.set('Could not save user right now. Please try again.');
+            },
+          });
+        return;
+      }
     }
 
     if (!resolvedUser) {
       return;
     }
 
-    this.activeUser.set(resolvedUser);
-    this.persistActiveUser(resolvedUser);
-    this.isActiveUserModalOpen.set(false);
-
-    const userExists = this.authors().some(
-      (author) => author._id === resolvedUser.id
-    );
-
-    if (!userExists && customUserName.length > 0) {
-      const localAuthor: TdQuoteAuthorWithId = {
-        _id: resolvedUser.id,
-        name: resolvedUser.name,
-        score: 0,
-      };
-      this.store.addAuthor(localAuthor);
-    }
+    this.finalizeActiveUserSelection(resolvedUser);
   }
 
   public onScroll(event: Event): void {
@@ -386,9 +413,20 @@ export class TdQuotesOverviewComponent implements OnInit {
       return;
     }
 
+    this.isSavingActiveUser.set(false);
+    this.activeUserSaveError.set('');
     this.selectedActiveUserId.set('');
     this.newActiveUserName = '';
     this.isActiveUserModalOpen.set(true);
+  }
+
+  private finalizeActiveUserSelection(user: { id: string; name: string }): void {
+    this.activeUser.set(user);
+    this.persistActiveUser(user);
+    this.isActiveUserModalOpen.set(false);
+    this.selectedActiveUserId.set('');
+    this.newActiveUserName = '';
+    this.activeUserSaveError.set('');
   }
 
   private loadActiveUser(): { id: string; name: string } | null {

@@ -111,13 +111,16 @@
         </div>
 
         <div class="active-user-modal--footer">
+            @if (activeUserSaveError()) {
+                <div class="active-user-modal--error" role="alert">{{ activeUserSaveError() }}</div>
+            }
             <button
                 class="apply-button"
                 type="button"
-                [disabled]="!canConfirmActiveUser()"
+                [disabled]="!canConfirmActiveUser() || isSavingActiveUser()"
                 (click)="confirmActiveUser()"
             >
-                Confirm
+                {{ isSavingActiveUser() ? 'Saving...' : 'Confirm' }}
             </button>
         </div>
     </div>

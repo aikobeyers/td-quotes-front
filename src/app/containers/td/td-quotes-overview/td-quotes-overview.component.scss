@@ -264,6 +264,13 @@
     color: #1b1f27;
 }
 
+.active-user-modal--error {
+    margin: 0;
+    color: #7f1d1d;
+    font-size: 13px;
+    font-weight: 600;
+}
+
 .active-user-options {
     display: flex;
     flex-wrap: wrap;

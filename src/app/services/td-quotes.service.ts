@@ -22,6 +22,10 @@ export class TdQuotesService {
     return this.http.get<TdQuoteAuthorWithId[]>(`${BASE_URL}/tdquotes/authors`);
   }
 
+  public createAuthor(name: string): Observable<TdQuoteAuthorWithId> {
+    return this.http.post<TdQuoteAuthorWithId>(`${BASE_URL}/tdquotes/authors`, { name });
+  }
+
   public getTdQuotes() {
     let params = new HttpParams();
     const filters = this.filtersStore.filters();
