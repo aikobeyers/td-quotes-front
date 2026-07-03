@@ -498,6 +498,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   public logoutActiveUser(): void {
     this.closeHeaderMenu();
     this.activeUser.set(null);
+    this.resetFiltersAfterUserChange();
     this.clearCookie(this.activeUserStorageKey);
     this.pushNotificationsService.syncSubscriptionWithActiveUser();
     this.openActiveUserModalIfNeeded();
@@ -699,12 +700,19 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   private finalizeActiveUserSelection(user: { id: string; name: string }): void {
     this.activeUser.set(user);
+    this.resetFiltersAfterUserChange();
     this.persistActiveUser(user);
     this.pushNotificationsService.syncSubscriptionWithActiveUser();
     this.isActiveUserModalOpen.set(false);
     this.selectedActiveUserId.set('');
     this.newActiveUserName = '';
     this.activeUserSaveError.set('');
+  }
+
+  private resetFiltersAfterUserChange(): void {
+    this.store.resetFilters();
+    this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
+    this.getQuotes();
   }
 
   private loadActiveUser(): { id: string; name: string } | null {
