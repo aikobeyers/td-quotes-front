@@ -67,7 +67,7 @@
 
         <button
             class="icon-button sort-button"
-            [class.active]="sortMode() !== 'standard'"
+            [class.active]="isSortButtonActive()"
             type="button"
             [attr.aria-label]="sortModeLabel()"
             (click)="cycleSortMode()"
