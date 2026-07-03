@@ -84,15 +84,22 @@
                 </div>
             }
         } @else {
-            @for (tdQuote of displayedQuotes(); track tdQuote._id; let last = $last) {
-                <div [ngStyle]="{ 'margin-bottom.px': last ? 0 : 10 }">
-                    <td-quote-card
-                        class="td-quotes-overview--card"
-                        [tdQuote]="tdQuote"
-                        [isFavorite]="isFavorite(tdQuote._id)"
-                        (favoriteToggled)="toggleFavorite($event)"
-                    />
+            @if (appliedFilters().scope === 'favorites' && displayedQuotes().length === 0) {
+                <div class="td-quotes-empty-state-text" role="status" aria-live="polite">
+                    <p class="td-quotes-empty-state-text--title">No favorites yet</p>
+                    <p class="td-quotes-empty-state-text--body">Tap the star on any quote to save it here.</p>
                 </div>
+            } @else {
+                @for (tdQuote of displayedQuotes(); track tdQuote._id; let last = $last) {
+                    <div [ngStyle]="{ 'margin-bottom.px': last ? 0 : 10 }">
+                        <td-quote-card
+                            class="td-quotes-overview--card"
+                            [tdQuote]="tdQuote"
+                            [isFavorite]="isFavorite(tdQuote._id)"
+                            (favoriteToggled)="toggleFavorite($event)"
+                        />
+                    </div>
+                }
             }
         }
     </div>

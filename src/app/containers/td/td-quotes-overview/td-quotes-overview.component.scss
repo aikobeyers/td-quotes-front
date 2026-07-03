@@ -249,6 +249,27 @@
 
     .td-quotes-overview--container {
         padding: 6px 16px 108px;
+
+        .td-quotes-empty-state-text {
+            color: #2b3038;
+
+            .td-quotes-empty-state-text--title,
+            .td-quotes-empty-state-text--body {
+                margin: 0;
+            }
+
+            .td-quotes-empty-state-text--title {
+                font-size: 15px;
+                font-weight: 700;
+                margin-bottom: 4px;
+            }
+
+            .td-quotes-empty-state-text--body {
+                font-size: 13px;
+                color: #66656d;
+                line-height: 1.4;
+            }
+        }
     }
 
     .create-fab {
