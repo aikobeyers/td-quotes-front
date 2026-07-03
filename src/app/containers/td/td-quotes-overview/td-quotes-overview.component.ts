@@ -113,6 +113,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   ];
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
+  public secretModalTab = signal<'notification' | 'user'>('notification');
   public secretNotificationAudience = signal<'all' | 'selected'>('all');
   public secretRecipientAuthorIds = signal<string[]>([]);
   public activeAuthor = computed(() => {
@@ -477,9 +478,14 @@ export class TdQuotesOverviewComponent implements OnInit {
   public openSecretModal(): void {
     this.secretNotificationTitle = '';
     this.secretNotificationBody = '';
+    this.secretModalTab.set('notification');
     this.secretNotificationAudience.set('all');
     this.secretRecipientAuthorIds.set([]);
     this.isSecretModalOpen.set(true);
+  }
+
+  public setSecretModalTab(tab: 'notification' | 'user'): void {
+    this.secretModalTab.set(tab);
   }
 
   public closeSecretModal(): void {

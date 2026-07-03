@@ -171,107 +171,162 @@
             </button>
         </div>
 
+        <div class="secret-modal--tabs" role="tablist" aria-label="Secret modal sections">
+            <button
+                type="button"
+                class="secret-modal--tab"
+                role="tab"
+                id="secret-tab-notification"
+                [class.selected]="secretModalTab() === 'notification'"
+                [attr.aria-selected]="secretModalTab() === 'notification'"
+                [attr.tabindex]="secretModalTab() === 'notification' ? 0 : -1"
+                aria-controls="secret-panel-notification"
+                (click)="setSecretModalTab('notification')"
+            >
+                Notification
+            </button>
+
+            <button
+                type="button"
+                class="secret-modal--tab"
+                role="tab"
+                id="secret-tab-user"
+                [class.selected]="secretModalTab() === 'user'"
+                [attr.aria-selected]="secretModalTab() === 'user'"
+                [attr.tabindex]="secretModalTab() === 'user' ? 0 : -1"
+                aria-controls="secret-panel-user"
+                (click)="setSecretModalTab('user')"
+            >
+                Create User
+            </button>
+        </div>
+
         <div class="secret-modal--form">
-            <label class="secret-label" for="secret-notification-title">Title</label>
-            <input
-                id="secret-notification-title"
-                class="secret-input"
-                type="text"
-                [(ngModel)]="secretNotificationTitle"
-                maxlength="120"
-                autocomplete="off"
-            />
+            @if (secretModalTab() === 'notification') {
+                <div
+                    class="secret-modal--panel"
+                    role="tabpanel"
+                    id="secret-panel-notification"
+                    aria-labelledby="secret-tab-notification"
+                >
+                    <label class="secret-label" for="secret-notification-title">Title</label>
+                    <input
+                        id="secret-notification-title"
+                        class="secret-input"
+                        type="text"
+                        [(ngModel)]="secretNotificationTitle"
+                        maxlength="120"
+                        autocomplete="off"
+                    />
 
-            <label class="secret-label" for="secret-notification-body">Body</label>
-            <textarea
-                id="secret-notification-body"
-                class="secret-textarea"
-                [(ngModel)]="secretNotificationBody"
-                maxlength="500"
-                rows="5"
-            ></textarea>
+                    <label class="secret-label" for="secret-notification-body">Body</label>
+                    <textarea
+                        id="secret-notification-body"
+                        class="secret-textarea"
+                        [(ngModel)]="secretNotificationBody"
+                        maxlength="500"
+                        rows="5"
+                    ></textarea>
 
-            <div class="secret-recipient-section">
-                <div class="secret-label">Recipients</div>
+                    <div class="secret-recipient-section">
+                        <div class="secret-label">Recipients</div>
 
-                <div class="secret-recipient-modes" role="radiogroup" aria-label="Push notification recipients">
-                    <button
-                        type="button"
-                        class="secret-recipient-mode"
-                        [class.selected]="secretNotificationAudience() === 'all'"
-                        [attr.aria-pressed]="secretNotificationAudience() === 'all'"
-                        (click)="setSecretNotificationAudience('all')"
-                    >
-                        Everyone
-                    </button>
-
-                    <button
-                        type="button"
-                        class="secret-recipient-mode"
-                        [class.selected]="secretNotificationAudience() === 'selected'"
-                        [attr.aria-pressed]="secretNotificationAudience() === 'selected'"
-                        (click)="setSecretNotificationAudience('selected')"
-                    >
-                        Selected Users
-                    </button>
-                </div>
-
-                @if (secretNotificationAudience() === 'selected') {
-                    <div class="secret-recipient-authors">
-                        @for (author of targetableRecipientAuthors(); track author._id) {
+                        <div class="secret-recipient-modes" role="radiogroup" aria-label="Push notification recipients">
                             <button
                                 type="button"
-                                class="secret-recipient-author"
-                                [class.selected]="isSecretRecipientSelected(author._id)"
-                                [attr.aria-pressed]="isSecretRecipientSelected(author._id)"
-                                (click)="toggleSecretRecipient(author._id)"
+                                class="secret-recipient-mode"
+                                [class.selected]="secretNotificationAudience() === 'all'"
+                                [attr.aria-pressed]="secretNotificationAudience() === 'all'"
+                                (click)="setSecretNotificationAudience('all')"
                             >
-                                {{ author.name }}
+                                Everyone
                             </button>
-                        }
 
-                        @if (targetableRecipientAuthors().length === 0) {
-                            <div class="secret-recipient-empty">No saved users available yet.</div>
+                            <button
+                                type="button"
+                                class="secret-recipient-mode"
+                                [class.selected]="secretNotificationAudience() === 'selected'"
+                                [attr.aria-pressed]="secretNotificationAudience() === 'selected'"
+                                (click)="setSecretNotificationAudience('selected')"
+                            >
+                                Selected Users
+                            </button>
+                        </div>
+
+                        @if (secretNotificationAudience() === 'selected') {
+                            <div class="secret-recipient-authors">
+                                @for (author of targetableRecipientAuthors(); track author._id) {
+                                    <button
+                                        type="button"
+                                        class="secret-recipient-author"
+                                        [class.selected]="isSecretRecipientSelected(author._id)"
+                                        [attr.aria-pressed]="isSecretRecipientSelected(author._id)"
+                                        (click)="toggleSecretRecipient(author._id)"
+                                    >
+                                        {{ author.name }}
+                                    </button>
+                                }
+
+                                @if (targetableRecipientAuthors().length === 0) {
+                                    <div class="secret-recipient-empty">No saved users available yet.</div>
+                                }
+                            </div>
                         }
                     </div>
-                }
-            </div>
+                </div>
+            } @else {
+                <div
+                    class="secret-modal--panel"
+                    role="tabpanel"
+                    id="secret-panel-user"
+                    aria-labelledby="secret-tab-user"
+                >
+                    <div class="secret-user-tab-note">
+                        Add someone new so they can use the app.
+                    </div>
 
-            <div class="active-user-new">
-             <label for="active-user-new-input">Add someone new</label>
-                <input
-                id="active-user-new-input"
-                type="text"
-                [value]="newActiveUserName"
-                maxlength="60"
-                autocomplete="off"
-                (input)="onNewActiveUserInput($any($event.target).value)"
-                 />
-                  @if (activeUserSaveError()) {
-                <div class="active-user-modal--error" role="alert">{{ activeUserSaveError() }}</div>
+                    <div class="active-user-new">
+                        <label for="active-user-new-input">Add someone new</label>
+                        <input
+                            id="active-user-new-input"
+                            type="text"
+                            [value]="newActiveUserName"
+                            maxlength="60"
+                            autocomplete="off"
+                            (input)="onNewActiveUserInput($any($event.target).value)"
+                        />
+
+                        @if (activeUserSaveError()) {
+                            <div class="active-user-modal--error" role="alert">{{ activeUserSaveError() }}</div>
+                        }
+                    </div>
+                </div>
             }
-        </div>
 
         </div>
 
         <div class="secret-modal--footer">
-            <button
-                class="primary-button apply-button"
-                type="button"
-                [disabled]="!canConfirmActiveUser() || isSavingActiveUser()"
-                (click)="createNewUser()"
-            >
-                {{ isSavingActiveUser() ? 'Saving...' : 'Add person' }}
-            </button>
             <button type="button" class="secondary-button" (click)="closeSecretModal()">Cancel</button>
-            <button
-                type="button"
-                class="primary-button apply-button"
-                [disabled]="!canSendSecretNotification() || isSendingSecretNotification()"
-                (click)="sendSecretNotification()"
-            >
-                Send Push
-            </button>
+
+            @if (secretModalTab() === 'notification') {
+                <button
+                    type="button"
+                    class="primary-button apply-button"
+                    [disabled]="!canSendSecretNotification() || isSendingSecretNotification()"
+                    (click)="sendSecretNotification()"
+                >
+                    Send Push
+                </button>
+            } @else {
+                <button
+                    class="primary-button apply-button"
+                    type="button"
+                    [disabled]="!canConfirmActiveUser() || isSavingActiveUser()"
+                    (click)="createNewUser()"
+                >
+                    {{ isSavingActiveUser() ? 'Saving...' : 'Add person' }}
+                </button>
+            }
         </div>
     </div>
 </div>

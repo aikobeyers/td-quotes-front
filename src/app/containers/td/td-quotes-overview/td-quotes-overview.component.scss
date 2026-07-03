@@ -470,6 +470,44 @@
     letter-spacing: 0.01em;
 }
 
+.secret-modal--tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 12px 18px 0;
+    border-bottom: 1px solid #ddd8d2;
+}
+
+.secret-modal--tab {
+    border-radius: 12px 12px 0 0;
+    padding: 9px 16px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    margin-bottom: -1px;
+    background: transparent;
+    color: #6a6760;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+
+    &.selected {
+        border-color: #ddd8d2;
+        background: rgba(251, 249, 246, 0.95);
+        color: #1f2834;
+    }
+
+    &:not(.selected):hover {
+        background: rgba(240, 236, 231, 0.75);
+        color: #454850;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #bbc8da;
+        outline-offset: 1px;
+    }
+}
+
 .secret-close-button {
     border: 1px solid #ddd7d1;
     background: #f6f4f1;
@@ -484,8 +522,22 @@
 
 .secret-modal--form {
     padding: 16px 18px;
+}
+
+.secret-modal--panel {
     display: grid;
     row-gap: 10px;
+    border: 1px solid #e2ddd7;
+    border-radius: 14px;
+    background: rgba(251, 249, 246, 0.75);
+    padding: 12px;
+}
+
+.secret-user-tab-note {
+    margin: 0;
+    font-size: 13px;
+    color: #66656d;
+    line-height: 1.4;
 }
 
 .secret-label {
@@ -599,7 +651,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    padding: 0 18px 16px;
+    padding: 4px 18px 16px;
 
     .secondary-button {
         border-radius: 12px;
@@ -655,6 +707,10 @@
 
     .secret-modal--form {
         padding: 14px;
+    }
+
+    .secret-modal--tabs {
+        padding: 12px 14px 0;
     }
 
     .secret-modal--footer {
