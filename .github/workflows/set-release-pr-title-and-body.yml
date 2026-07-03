@@ -81,7 +81,7 @@ jobs:
             const nextVersionTag = `v${nextVersion}`;
             const prTitle = isDevelopReleasePr
               ? `Release ${nextVersionTag}`
-              : `Minor release ${nextVersionTag}`;
+              : `Patch release ${nextVersionTag}`;
 
             const commits = await github.paginate(github.rest.pulls.listCommits, {
               owner,
