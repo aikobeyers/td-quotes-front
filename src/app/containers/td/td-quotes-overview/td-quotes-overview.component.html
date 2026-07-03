@@ -1,51 +1,29 @@
 <div class="td-quotes-overview--wrapper" #container (scroll)="onScroll($event)">
     <div class="td-quotes-overview--header" [ngClass]="{ scrolled: hasScrolled() }">
-        <div class="header--left">
-            <button
-                class="header--brand"
-                type="button"
-                aria-label="TD brand"
-                (touchstart)="onBrandTap($event)"
-                (click)="onBrandTap($event)"
-            >
-                <img src="icons/TD Icon sleek new.png" alt="TD" class="brand--logo" />
-            </button>
+        <div class="header--spacer" aria-hidden="true"></div>
 
-            <div class="header--filters-row">
-                <button class="icon-button" type="button" (click)="openFilters()" aria-label="Filter quotes">
-                    <mat-icon fontIcon="filter_alt"></mat-icon>
-                </button>
-
-                <div class="header--filter-pills">
-                    @for (pill of activeFilterPills(); track pill) {
-                        <span class="filter-pill">{{ pill }}</span>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <div class="header--title">TD Quotes</div>
+        <button
+            class="header--logo-button"
+            type="button"
+            aria-label="TD logo"
+            (touchstart)="onBrandTap($event)"
+            (click)="onBrandTap($event)"
+        >
+            <img src="icons/New TD logo clean.png" alt="TD" class="header--logo" />
+        </button>
 
         <div class="header--actions" #headerActions>
-            <button
-                class="icon-button"
-                type="button"
+            <mat-icon
+                class="header--menu-icon"
+                fontIcon="menu"
+                role="button"
+                tabindex="0"
                 aria-label="Open menu"
                 [attr.aria-expanded]="isHeaderMenuOpen()"
                 (click)="toggleHeaderMenu()"
-            >
-                <mat-icon fontIcon="menu"></mat-icon>
-            </button>
-
-            <button
-                class="icon-button sort-button"
-                [class.active]="sortMode() !== 'standard'"
-                type="button"
-                [attr.aria-label]="sortModeLabel()"
-                (click)="cycleSortMode()"
-            >
-                <mat-icon [fontIcon]="sortModeIcon()"></mat-icon>
-            </button>
+                (keydown.enter)="toggleHeaderMenu()"
+                (keydown.space)="$event.preventDefault(); toggleHeaderMenu()"
+            ></mat-icon>
 
             @if (isHeaderMenuOpen()) {
                 <div class="header-menu" role="menu" aria-label="Overview menu">
@@ -63,6 +41,28 @@
             }
         </div>
 
+    </div>
+
+    <div class="header--filters-row">
+        <button class="icon-button" type="button" (click)="openFilters()" aria-label="Filter quotes">
+            <mat-icon fontIcon="filter_alt"></mat-icon>
+        </button>
+
+        <div class="header--filter-pills">
+            @for (pill of activeFilterPills(); track pill) {
+                <span class="filter-pill">{{ pill }}</span>
+            }
+        </div>
+
+        <button
+            class="icon-button sort-button"
+            [class.active]="sortMode() !== 'standard'"
+            type="button"
+            [attr.aria-label]="sortModeLabel()"
+            (click)="cycleSortMode()"
+        >
+            <mat-icon [fontIcon]="sortModeIcon()"></mat-icon>
+        </button>
     </div>
 
     <div class="td-quotes-overview--container">

@@ -15,132 +15,61 @@
         z-index: 40;
         display: grid;
         grid-template-columns: auto 1fr auto;
-        align-items: start;
-        padding: 20px 16px 16px;
-        background: transparent;
+        align-items: center;
+        column-gap: 12px;
+        padding: 8px 16px;
+        background: #000000;
         transition: background-color 0.2s ease, box-shadow 0.2s ease;
 
         &.scrolled {
-            background: rgba(248, 247, 245, 0.9);
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 16px rgba(20, 24, 33, 0.05);
+            background: #000000;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
         }
 
-        .header--left {
+        .header--spacer {
             min-width: 104px;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-
-            .header--brand {
-                display: flex;
-                align-items: center;
-                border: none;
-                padding: 0;
-                background: transparent;
-                cursor: pointer;
-                touch-action: manipulation;
-                user-select: none;
-                -webkit-user-select: none;
-                -webkit-touch-callout: none;
-
-                .brand--logo {
-                    width: 52px;
-                    height: 52px;
-                    object-fit: contain;
-                    border-radius: 16px;
-                }
-            }
-
-            .icon-button {
-                width: 52px;
-                height: 52px;
-                border-radius: 16px;
-                border: 1px solid #e5e2de;
-                background-color: #f8f7f5;
-                color: #272b31;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-
-                mat-icon {
-                    font-size: 28px;
-                    width: 28px;
-                    height: 28px;
-                }
-            }
-
-            .header--filters-row {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                min-width: 0;
-            }
-
-            .header--filter-pills {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-
-                .filter-pill {
-                    border: 1px solid #d3cec7;
-                    background: rgba(246, 243, 238, 0.95);
-                    color: #4a4f59;
-                    border-radius: 999px;
-                    padding: 6px 12px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    letter-spacing: 0.01em;
-                }
-            }
+            min-height: 44px;
         }
 
-        .header--title {
-            text-align: center;
-            font-size: 22px;
-            font-weight: 600;
-            letter-spacing: 0.01em;
-            color: #1b1f27;
-            padding-top: 8px;
+        .header--logo-button {
+            justify-self: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            padding: 0;
+            background: transparent;
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+
+            .header--logo {
+                height: 44px;
+                width: auto;
+                object-fit: contain;
+            }
         }
 
         .header--actions {
             min-width: 104px;
             justify-self: end;
             position: relative;
-            display: grid;
-            grid-template-rows: 52px 52px;
-            row-gap: 10px;
-            justify-items: end;
-            align-content: start;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            min-height: 44px;
 
-            .icon-button {
-                width: 52px;
-                height: 52px;
-                border-radius: 16px;
-                border: 1px solid #e5e2de;
-                background-color: #f8f7f5;
-                color: #272b31;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-
-                mat-icon {
-                    font-size: 28px;
-                    width: 28px;
-                    height: 28px;
-                }
-            }
-
-            .sort-button {
-                &.active {
-                    border-color: #b7c2d3;
-                    background: #e8edf5;
-                    color: #20324a;
-                }
+            .header--menu-icon {
+                color: #ffffff;
+                font-size: 34px;
+                width: 34px;
+                height: 34px;
+                line-height: 34px;
+                margin: 0;
+                margin-right: 7px;
+                cursor: pointer;
             }
 
             .header-menu {
@@ -190,6 +119,65 @@
                     font-size: 14px;
                     font-weight: 500;
                 }
+            }
+        }
+    }
+
+    .icon-button {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        border: 1px solid #e5e2de;
+        background-color: #f8f7f5;
+        color: #272b31;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+
+        mat-icon {
+            font-size: 28px;
+            width: 28px;
+            height: 28px;
+        }
+    }
+
+    .header--filters-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 10px 16px 8px;
+
+        .header--filter-pills {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+
+            .filter-pill {
+                border: 1px solid #d3cec7;
+                background: rgba(246, 243, 238, 0.95);
+                color: #4a4f59;
+                border-radius: 999px;
+                padding: 6px 12px;
+                font-size: 12px;
+                font-weight: 600;
+                letter-spacing: 0.01em;
+            }
+        }
+
+        .sort-button {
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .sort-button {
+            &.active {
+                border-color: #b7c2d3;
+                background: #e8edf5;
+                color: #20324a;
             }
         }
 
