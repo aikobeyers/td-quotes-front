@@ -1,0 +1,46 @@
+<div
+    class="active-user-modal--backdrop"
+    [ngClass]="{ open: isOpen() || canInstall(), closed: !isOpen() && !canInstall() }"
+>
+    <div class="active-user-modal--box">
+        <div class="active-user-modal--title">
+            @if (canInstall()) {
+                Install the app
+            } @else if (isOpen()) {
+                Who's using the app?
+            }
+        </div>
+
+        <div class="active-user-options">
+            @if (canInstall()) {
+                Please install the app to use it. You can do this by clicking the "Install app" button below.
+            } @else if (isOpen()) {
+                @for (author of authors(); track author._id) {
+                    <button
+                        type="button"
+                        class="active-user-pill"
+                        [class.selected]="selectedActiveUserId() === author._id"
+                        (click)="selectUser.emit(author)"
+                    >
+                        {{ author.name }}
+                    </button>
+                }
+            }
+        </div>
+
+        <div class="active-user-modal--footer">
+            @if (canInstall()) {
+                <button class="apply-button" type="button" (click)="installPwa.emit()">Install app</button>
+            } @else if (isOpen()) {
+                <button
+                    class="apply-button"
+                    type="button"
+                    [disabled]="!canConfirm() || isSaving()"
+                    (click)="confirm.emit()"
+                >
+                    {{ isSaving() ? 'Saving...' : 'Confirm' }}
+                </button>
+            }
+        </div>
+    </div>
+</div>

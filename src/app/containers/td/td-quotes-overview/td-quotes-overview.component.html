@@ -1,68 +1,79 @@
 <div class="td-quotes-overview--wrapper" #container (scroll)="onScroll($event)">
     <div class="td-quotes-overview--header" [ngClass]="{ scrolled: hasScrolled() }">
-        <div class="header--left">
-            <button
-                class="header--brand"
-                type="button"
-                aria-label="TD brand"
-                (touchstart)="onBrandTap($event)"
-                (click)="onBrandTap($event)"
-            >
-                <img src="icons/TD Icon sleek new.png" alt="TD" class="brand--logo" />
-            </button>
+        <div class="header--spacer" aria-hidden="true"></div>
 
-            <div class="header--filters-row">
-                <button class="icon-button" type="button" (click)="openFilters()" aria-label="Filter quotes">
-                    <mat-icon fontIcon="filter_alt"></mat-icon>
-                </button>
-
-                <div class="header--filter-pills">
-                    @for (pill of activeFilterPills(); track pill) {
-                        <span class="filter-pill">{{ pill }}</span>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <div class="header--title">TD Quotes</div>
+        <button
+            class="header--logo-button"
+            type="button"
+            aria-label="TD logo"
+            (touchstart)="onBrandTap($event)"
+            (click)="onBrandTap($event)"
+        >
+            <img src="icons/New TD logo clean.png" alt="TD" class="header--logo" />
+        </button>
 
         <div class="header--actions" #headerActions>
-            <button
-                class="icon-button"
-                type="button"
+            <mat-icon
+                class="header--menu-icon"
+                fontIcon="menu"
+                role="button"
+                tabindex="0"
                 aria-label="Open menu"
                 [attr.aria-expanded]="isHeaderMenuOpen()"
                 (click)="toggleHeaderMenu()"
-            >
-                <mat-icon fontIcon="menu"></mat-icon>
-            </button>
-
-            <button
-                class="icon-button sort-button"
-                [class.active]="sortMode() !== 'standard'"
-                type="button"
-                [attr.aria-label]="sortModeLabel()"
-                (click)="cycleSortMode()"
-            >
-                <mat-icon [fontIcon]="sortModeIcon()"></mat-icon>
-            </button>
+                (keydown.enter)="toggleHeaderMenu()"
+                (keydown.space)="$event.preventDefault(); toggleHeaderMenu()"
+            ></mat-icon>
 
             @if (isHeaderMenuOpen()) {
                 <div class="header-menu" role="menu" aria-label="Overview menu">
-                    <button type="button" class="menu-item menu-active-user" role="menuitem" (click)="logoutActiveUser()">
-                        <span class="menu-active-user--value">{{ activeUser()?.name || 'Unknown' }}</span>
-                        <span class="menu-active-user--logout">Logout</span>
+                    <div class="header-menu--section-label">Signed in as</div>
+
+                    <button type="button" class="menu-active-user" role="menuitem" (click)="logoutActiveUser()">
+                        <span class="menu-active-user--identity">
+                            <mat-icon class="menu-active-user--icon" fontIcon="person"></mat-icon>
+                            <span class="menu-active-user--value">{{ activeUser()?.name || 'Unknown' }}</span>
+                        </span>
+                        <span class="menu-active-user--logout">Log out</span>
                     </button>
+
+                    <div class="header-menu--section-label">Quick actions</div>
+
                     <button type="button" class="menu-item" role="menuitem" (click)="openGameFromMenu()">
-                        Play Quote Game
+                        <span class="menu-item--label">Play Quote Game</span>
+                        <mat-icon class="menu-item--icon" fontIcon="sports_esports"></mat-icon>
                     </button>
+
                     <button type="button" class="menu-item" role="menuitem" (click)="openLeaderboardFromMenu()">
-                        View Leaderboard
+                        <span class="menu-item--label">View Leaderboard</span>
+                        <mat-icon class="menu-item--icon" fontIcon="emoji_events"></mat-icon>
                     </button>
                 </div>
             }
         </div>
 
+    </div>
+
+    <div class="header--filters-row">
+        <button class="icon-button" type="button" (click)="openFilters()" aria-label="Filter quotes">
+            <mat-icon fontIcon="filter_alt"></mat-icon>
+        </button>
+
+        <div class="header--filter-pills">
+            @for (pill of activeFilterPills(); track pill) {
+                <span class="filter-pill">{{ pill }}</span>
+            }
+        </div>
+
+        <button
+            class="icon-button sort-button"
+            [class.active]="sortMode() !== 'standard'"
+            type="button"
+            [attr.aria-label]="sortModeLabel()"
+            (click)="cycleSortMode()"
+        >
+            <mat-icon [fontIcon]="sortModeIcon()"></mat-icon>
+        </button>
     </div>
 
     <div class="td-quotes-overview--container">
@@ -73,15 +84,22 @@
                 </div>
             }
         } @else {
-            @for (tdQuote of displayedQuotes(); track tdQuote._id; let last = $last) {
-                <div [ngStyle]="{ 'margin-bottom.px': last ? 0 : 10 }">
-                    <td-quote-card
-                        class="td-quotes-overview--card"
-                        [tdQuote]="tdQuote"
-                        [isFavorite]="isFavorite(tdQuote._id)"
-                        (favoriteToggled)="toggleFavorite($event)"
-                    />
+            @if (appliedFilters().scope === 'favorites' && displayedQuotes().length === 0) {
+                <div class="td-quotes-empty-state-text" role="status" aria-live="polite">
+                    <p class="td-quotes-empty-state-text--title">No favorites yet</p>
+                    <p class="td-quotes-empty-state-text--body">Tap the star on any quote to save it here.</p>
                 </div>
+            } @else {
+                @for (tdQuote of displayedQuotes(); track tdQuote._id; let last = $last) {
+                    <div [ngStyle]="{ 'margin-bottom.px': last ? 0 : 10 }">
+                        <td-quote-card
+                            class="td-quotes-overview--card"
+                            [tdQuote]="tdQuote"
+                            [isFavorite]="isFavorite(tdQuote._id)"
+                            (favoriteToggled)="toggleFavorite($event)"
+                        />
+                    </div>
+                }
             }
         }
     </div>
@@ -91,179 +109,42 @@
     </button>
 </div>
 
-<div class="active-user-modal--backdrop" [ngClass]="{ open: isActiveUserModalOpen() || canInstall(), closed: !isActiveUserModalOpen() && !canInstall() }">
-    <div class="active-user-modal--box">
-        <div class="active-user-modal--title">
-            @if (canInstall()) {
-                Install the app
-            } @else if(isActiveUserModalOpen()) {
-                Who's using the app?
-            }
-        </div>
+<app-td-active-user-modal
+    [canInstall]="canInstall()"
+    [isOpen]="isActiveUserModalOpen()"
+    [authors]="authors()"
+    [selectedActiveUserId]="selectedActiveUserId()"
+    [canConfirm]="canConfirmActiveUser()"
+    [isSaving]="isSavingActiveUser()"
+    (installPwa)="installPwa()"
+    (selectUser)="selectActiveUser($event)"
+    (confirm)="confirmActiveUser()"
+/>
 
-        <div class="active-user-options">
-            @if (canInstall()) {
-                Please install the app to use it. You can do this by clicking the "Install app" button below.
-            } @else if (isActiveUserModalOpen()) {
-                @for (author of authors(); track author._id) {
-                <button
-                    type="button"
-                    class="active-user-pill"
-                    [class.selected]="selectedActiveUserId() === author._id"
-                    (click)="selectActiveUser(author)"
-                >
-                    {{ author.name }}
-                </button>
-            } 
-            }
-        </div>
-
-        <div class="active-user-modal--footer">
-            @if(canInstall()) {
-                <button
-                    class="apply-button"
-                    type="button"
-                    (click)="installPwa()"
-                >
-                    Install app
-                </button>
-            }
-            @else if(isActiveUserModalOpen()) {
-                <button
-                    class="apply-button"
-                    type="button"
-                    [disabled]="!canConfirmActiveUser() || isSavingActiveUser()"
-                    (click)="confirmActiveUser()"
-                >
-                    {{ isSavingActiveUser() ? 'Saving...' : 'Confirm' }}
-                </button>
-            }
-        </div>
-    </div>
-</div>
-
-<div
-    class="secret-modal--backdrop"
-    [ngClass]="{ open: isSecretModalOpen(), closed: !isSecretModalOpen() }"
-    (click)="closeSecretModal()"
->
-    <div class="secret-modal--box" (click)="$event.stopPropagation()">
-        <div class="secret-modal--header">
-            <div class="secret-modal--title">Custom Push Notification</div>
-            <button
-                type="button"
-                class="secret-close-button"
-                aria-label="Close secret modal"
-                (click)="closeSecretModal()"
-            >
-                <mat-icon fontIcon="close"></mat-icon>
-            </button>
-        </div>
-
-        <div class="secret-modal--form">
-            <label class="secret-label" for="secret-notification-title">Title</label>
-            <input
-                id="secret-notification-title"
-                class="secret-input"
-                type="text"
-                [(ngModel)]="secretNotificationTitle"
-                maxlength="120"
-                autocomplete="off"
-            />
-
-            <label class="secret-label" for="secret-notification-body">Body</label>
-            <textarea
-                id="secret-notification-body"
-                class="secret-textarea"
-                [(ngModel)]="secretNotificationBody"
-                maxlength="500"
-                rows="5"
-            ></textarea>
-
-            <div class="secret-recipient-section">
-                <div class="secret-label">Recipients</div>
-
-                <div class="secret-recipient-modes" role="radiogroup" aria-label="Push notification recipients">
-                    <button
-                        type="button"
-                        class="secret-recipient-mode"
-                        [class.selected]="secretNotificationAudience() === 'all'"
-                        [attr.aria-pressed]="secretNotificationAudience() === 'all'"
-                        (click)="setSecretNotificationAudience('all')"
-                    >
-                        Everyone
-                    </button>
-
-                    <button
-                        type="button"
-                        class="secret-recipient-mode"
-                        [class.selected]="secretNotificationAudience() === 'selected'"
-                        [attr.aria-pressed]="secretNotificationAudience() === 'selected'"
-                        (click)="setSecretNotificationAudience('selected')"
-                    >
-                        Selected Users
-                    </button>
-                </div>
-
-                @if (secretNotificationAudience() === 'selected') {
-                    <div class="secret-recipient-authors">
-                        @for (author of targetableRecipientAuthors(); track author._id) {
-                            <button
-                                type="button"
-                                class="secret-recipient-author"
-                                [class.selected]="isSecretRecipientSelected(author._id)"
-                                [attr.aria-pressed]="isSecretRecipientSelected(author._id)"
-                                (click)="toggleSecretRecipient(author._id)"
-                            >
-                                {{ author.name }}
-                            </button>
-                        }
-
-                        @if (targetableRecipientAuthors().length === 0) {
-                            <div class="secret-recipient-empty">No saved users available yet.</div>
-                        }
-                    </div>
-                }
-            </div>
-
-            <div class="active-user-new">
-             <label for="active-user-new-input">Add someone new</label>
-                <input
-                id="active-user-new-input"
-                type="text"
-                [value]="newActiveUserName"
-                maxlength="60"
-                autocomplete="off"
-                (input)="onNewActiveUserInput($any($event.target).value)"
-                 />
-                  @if (activeUserSaveError()) {
-                <div class="active-user-modal--error" role="alert">{{ activeUserSaveError() }}</div>
-            }
-        </div>
-
-        </div>
-
-        <div class="secret-modal--footer">
-            <button
-                class="primary-button apply-button"
-                type="button"
-                [disabled]="!canConfirmActiveUser() || isSavingActiveUser()"
-                (click)="createNewUser()"
-            >
-                {{ isSavingActiveUser() ? 'Saving...' : 'Add person' }}
-            </button>
-            <button type="button" class="secondary-button" (click)="closeSecretModal()">Cancel</button>
-            <button
-                type="button"
-                class="primary-button apply-button"
-                [disabled]="!canSendSecretNotification() || isSendingSecretNotification()"
-                (click)="sendSecretNotification()"
-            >
-                Send Push
-            </button>
-        </div>
-    </div>
-</div>
+<app-td-secret-modal
+    [isOpen]="isSecretModalOpen()"
+    [tab]="secretModalTab()"
+    [secretNotificationTitle]="secretNotificationTitle"
+    [secretNotificationBody]="secretNotificationBody"
+    [secretNotificationAudience]="secretNotificationAudience()"
+    [targetableRecipientAuthors]="targetableRecipientAuthors()"
+    [selectedRecipientAuthorIds]="secretRecipientAuthorIds()"
+    [newActiveUserName]="newActiveUserName"
+    [activeUserSaveError]="activeUserSaveError()"
+    [canSendNotification]="canSendSecretNotification()"
+    [isSendingNotification]="isSendingSecretNotification()"
+    [canCreateUser]="canConfirmActiveUser()"
+    [isSavingUser]="isSavingActiveUser()"
+    (close)="closeSecretModal()"
+    (tabChange)="setSecretModalTab($event)"
+    (notificationTitleChange)="secretNotificationTitle = $event"
+    (notificationBodyChange)="secretNotificationBody = $event"
+    (notificationAudienceChange)="setSecretNotificationAudience($event)"
+    (recipientToggle)="toggleSecretRecipient($event)"
+    (newActiveUserNameInput)="onNewActiveUserInput($event)"
+    (sendNotification)="sendSecretNotification()"
+    (createUser)="createNewUser()"
+/>
 
 <app-td-quote-filters #filters (closeFiltersEmitter)="getQuotes($event)"></app-td-quote-filters>
 <app-td-quote-create #create (closeCreateEmitter)="getQuotes($event)"

@@ -1,0 +1,75 @@
+name: Validate version prepared
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Validate release PR version bump
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base_ref="${{ github.event.pull_request.base.ref }}"
+          head_ref="${{ github.event.pull_request.head.ref }}"
+
+          is_develop_release="false"
+          is_fix_release="false"
+
+          if [[ "$head_ref" == "develop" && ( "$base_ref" == "main" || "$base_ref" == "master" ) ]]; then
+            is_develop_release="true"
+          fi
+
+          if [[ "$head_ref" == fix/* && ( "$base_ref" == "main" || "$base_ref" == "master" ) ]]; then
+            is_fix_release="true"
+          fi
+
+          if [[ "$is_develop_release" != "true" && "$is_fix_release" != "true" ]]; then
+            echo "Not a release PR that requires pre-merge version validation."
+            exit 0
+          fi
+
+          git fetch origin "$base_ref" --depth=1
+
+          head_version=$(node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(pkg.version);")
+          manifest_version=$(node -e "const fs=require('fs');const manifest=JSON.parse(fs.readFileSync('public/manifest.webmanifest','utf8'));process.stdout.write(manifest.version || '');")
+          base_version=$(git show "origin/$base_ref:package.json" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const pkg=JSON.parse(s);process.stdout.write(pkg.version);});")
+
+          expected_version=$(node -e "const semver='${base_version}';const m=/^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$/.exec(semver);if(!m){throw new Error('Unsupported semver: '+semver);}const major=Number(m[1]);const minor=Number(m[2]);const patch=Number(m[3]);const isDevelop='${is_develop_release}'==='true';process.stdout.write(isDevelop?(major+'.'+(minor+1)+'.0'):(major+'.'+minor+'.'+(patch+1)));")
+
+          echo "Base version:      $base_version"
+          echo "Expected version:  $expected_version"
+          echo "Head version:      $head_version"
+          echo "Manifest version:  $manifest_version"
+
+          if [[ "$head_version" != "$expected_version" ]]; then
+            echo "::error title=Version not prepared::Expected package.json version '$expected_version' on branch '$head_ref' before merge."
+            exit 1
+          fi
+
+          if [[ "$manifest_version" != "$head_version" ]]; then
+            echo "::error title=Manifest version mismatch::public/manifest.webmanifest version must match package.json version ($head_version)."
+            exit 1
+          fi
+
+          echo "Version validation passed."

@@ -27,6 +27,8 @@ import { TdQuoteAuthorWithId } from '../../../models/TdQuoteAuthor';
 import { TdQuoteGameComponent } from '../td-quote-game/td-quote-game.component';
 import { TdQuotesLeaderboardComponent } from '../td-quotes-leaderboard/td-quotes-leaderboard.component';
 import { PwaInstallService } from '../../../services/pwa-install';
+import { TdActiveUserModalComponent } from './components/active-user-modal/td-active-user-modal.component';
+import { TdSecretModalComponent } from './components/secret-modal/td-secret-modal.component';
 
 @Component({
   selector: 'app-td-quotes-overview',
@@ -39,6 +41,8 @@ import { PwaInstallService } from '../../../services/pwa-install';
     TdQuoteCreateComponent,
     TdQuoteGameComponent,
     TdQuotesLeaderboardComponent,
+    TdActiveUserModalComponent,
+    TdSecretModalComponent,
     FormsModule,
   ],
   templateUrl: './td-quotes-overview.component.html',
@@ -91,7 +95,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isHeaderMenuOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
-  public sortMode = signal<'standard' | 'asc' | 'desc' | 'random'>('standard');
+  public sortMode = signal<'standard' | 'asc' | 'desc' | 'random'>('random');
   public randomOrderRank = signal<Record<string, number>>({});
   public activeUser = signal<{ id: string; name: string } | null>(
     this.loadActiveUser()
@@ -113,6 +117,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   ];
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
+  public secretModalTab = signal<'notification' | 'user'>('notification');
   public secretNotificationAudience = signal<'all' | 'selected'>('all');
   public secretRecipientAuthorIds = signal<string[]>([]);
   public activeAuthor = computed(() => {
@@ -477,9 +482,14 @@ export class TdQuotesOverviewComponent implements OnInit {
   public openSecretModal(): void {
     this.secretNotificationTitle = '';
     this.secretNotificationBody = '';
+    this.secretModalTab.set('notification');
     this.secretNotificationAudience.set('all');
     this.secretRecipientAuthorIds.set([]);
     this.isSecretModalOpen.set(true);
+  }
+
+  public setSecretModalTab(tab: 'notification' | 'user'): void {
+    this.secretModalTab.set(tab);
   }
 
   public closeSecretModal(): void {

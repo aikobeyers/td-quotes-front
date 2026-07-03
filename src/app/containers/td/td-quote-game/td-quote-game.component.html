@@ -60,11 +60,11 @@
 
                 <div class="game--actions">
                     <button type="button" class="game--primary" (click)="continueFromFeedback()">
-                        {{ feedbackType() === 'correct' ? 'Continue to Guesser' : 'Try Again' }}
+                        {{ feedbackType() === 'correct' ? 'Continue to guesser(s)' : 'Try Again' }}
                     </button>
                 </div>
             } @else if (gameStage() === 'guesser') {
-                <div class="game--prompt">Who guessed correctly and earns the point?</div>
+                <div class="game--prompt">Who guessed correctly and earns a point?</div>
                 <div class="game--authors-container">
                     @for (author of authorOptions(); track author._id) {
                         <button
@@ -82,13 +82,13 @@
                     <button
                         type="button"
                         class="game--primary"
-                        [disabled]="!selectedGuesserId() || isUpdatingScore()"
+                        [disabled]="selectedGuesserIds().length === 0 || isUpdatingScore()"
                         (click)="submitSelection()"
                     >
                         @if (isUpdatingScore()) {
                             Saving Score...
                         } @else {
-                            Save Round
+                            Save Points
                         }
                     </button>
                 </div>
