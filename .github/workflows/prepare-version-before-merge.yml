@@ -1,0 +1,80 @@
+name: Prepare version bump before merge
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prepare-version-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  prepare-version:
+    if: |
+      github.event.pull_request.draft == false &&
+      (
+        (github.event.pull_request.head.ref == 'develop' &&
+          (github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'master')) ||
+        (startsWith(github.event.pull_request.head.ref, 'fix/') &&
+          (github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'master'))
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump version on PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base_ref="${{ github.event.pull_request.base.ref }}"
+          head_ref="${{ github.event.pull_request.head.ref }}"
+
+          git fetch origin "$base_ref" --depth=1
+
+          head_version=$(node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));process.stdout.write(pkg.version);")
+          base_version=$(git show "origin/$base_ref:package.json" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const pkg=JSON.parse(s);process.stdout.write(pkg.version);});")
+
+          expected_version=$(node -e "const semver='${base_version}';const m=/^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$/.exec(semver);if(!m){throw new Error('Unsupported semver: '+semver);}const major=Number(m[1]);const minor=Number(m[2]);const patch=Number(m[3]);const isDevelop='${head_ref}'==='develop';process.stdout.write(isDevelop?(major+'.'+(minor+1)+'.0'):(major+'.'+minor+'.'+(patch+1)));")
+
+          if [[ "$head_version" == "$expected_version" ]]; then
+            echo "Version already prepared ($head_version)."
+            exit 0
+          fi
+
+          npm version "$expected_version" --no-git-tag-version
+
+          node -e "const fs=require('fs');const pkgPath='package.json';const manifestPath='public/manifest.webmanifest';const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));manifest.version=pkg.version;fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\\n');"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add package.json package-lock.json public/manifest.webmanifest
+
+          if git diff --cached --quiet; then
+            echo "No version files changed."
+            exit 0
+          fi
+
+          git commit -m "chore(release): prepare version $expected_version [skip ci]"
+          git push origin "HEAD:${head_ref}"
