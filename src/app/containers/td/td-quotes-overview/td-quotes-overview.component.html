@@ -27,15 +27,26 @@
 
             @if (isHeaderMenuOpen()) {
                 <div class="header-menu" role="menu" aria-label="Overview menu">
-                    <button type="button" class="menu-item menu-active-user" role="menuitem" (click)="logoutActiveUser()">
-                        <span class="menu-active-user--value">{{ activeUser()?.name || 'Unknown' }}</span>
-                        <span class="menu-active-user--logout">Logout</span>
+                    <div class="header-menu--section-label">Signed in as</div>
+
+                    <button type="button" class="menu-active-user" role="menuitem" (click)="logoutActiveUser()">
+                        <span class="menu-active-user--identity">
+                            <mat-icon class="menu-active-user--icon" fontIcon="person"></mat-icon>
+                            <span class="menu-active-user--value">{{ activeUser()?.name || 'Unknown' }}</span>
+                        </span>
+                        <span class="menu-active-user--logout">Log out</span>
                     </button>
+
+                    <div class="header-menu--section-label">Quick actions</div>
+
                     <button type="button" class="menu-item" role="menuitem" (click)="openGameFromMenu()">
-                        Play Quote Game
+                        <span class="menu-item--label">Play Quote Game</span>
+                        <mat-icon class="menu-item--icon" fontIcon="sports_esports"></mat-icon>
                     </button>
+
                     <button type="button" class="menu-item" role="menuitem" (click)="openLeaderboardFromMenu()">
-                        View Leaderboard
+                        <span class="menu-item--label">View Leaderboard</span>
+                        <mat-icon class="menu-item--icon" fontIcon="emoji_events"></mat-icon>
                     </button>
                 </div>
             }
