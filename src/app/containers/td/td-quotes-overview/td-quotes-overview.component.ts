@@ -95,7 +95,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isHeaderMenuOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
-  public sortMode = signal<'standard' | 'asc' | 'desc' | 'random'>('standard');
+  public sortMode = signal<'standard' | 'asc' | 'desc' | 'random'>('random');
   public randomOrderRank = signal<Record<string, number>>({});
   public activeUser = signal<{ id: string; name: string } | null>(
     this.loadActiveUser()
