@@ -135,6 +135,32 @@ export class TdQuotesOverviewComponent implements OnInit {
   public displayedQuotes = computed(() => {
     const quotes = [...this.quotes()];
     const mode = this.sortMode();
+    const scope = this.appliedFilters().scope;
+
+    if (scope === 'favorites' && mode === 'random') {
+      return quotes;
+    }
+
+    if (scope === 'recent' && (mode === 'standard' || mode === 'random')) {
+      return quotes.sort((quoteA, quoteB) => {
+        const parsedDateA = this.parseDateForSort(quoteA.date);
+        const parsedDateB = this.parseDateForSort(quoteB.date);
+
+        if (parsedDateA.isValid !== parsedDateB.isValid) {
+          return parsedDateA.isValid ? -1 : 1;
+        }
+
+        if (!parsedDateA.isValid && !parsedDateB.isValid) {
+          return quoteA.value.localeCompare(quoteB.value);
+        }
+
+        if (parsedDateA.timestamp !== parsedDateB.timestamp) {
+          return parsedDateB.timestamp - parsedDateA.timestamp;
+        }
+
+        return quoteA.value.localeCompare(quoteB.value);
+      });
+    }
 
     if (mode === 'standard') {
       return quotes;
@@ -190,7 +216,16 @@ export class TdQuotesOverviewComponent implements OnInit {
     });
   });
   public sortModeIcon = computed(() => {
+    const scope = this.appliedFilters().scope;
     const mode = this.sortMode();
+
+    if (scope === 'favorites' && mode === 'random') {
+      return 'sort';
+    }
+
+    if (scope === 'recent' && mode === 'random') {
+      return 'south';
+    }
 
     if (mode === 'asc') {
       return 'north';
@@ -207,7 +242,16 @@ export class TdQuotesOverviewComponent implements OnInit {
     return 'sort';
   });
   public sortModeLabel = computed(() => {
+    const scope = this.appliedFilters().scope;
     const mode = this.sortMode();
+
+    if (scope === 'favorites' && mode === 'random') {
+      return 'Sort: standard';
+    }
+
+    if (scope === 'recent' && mode === 'random') {
+      return 'Sort: descending';
+    }
 
     if (mode === 'asc') {
       return 'Sort: ascending';
@@ -222,6 +266,16 @@ export class TdQuotesOverviewComponent implements OnInit {
     }
 
     return 'Sort: standard';
+  });
+  public isSortButtonActive = computed(() => {
+    const scope = this.appliedFilters().scope;
+    const mode = this.sortMode();
+
+    if (scope === 'favorites' && mode === 'random') {
+      return false;
+    }
+
+    return mode !== 'standard';
   });
   public activeFilterPills = computed(() => {
     const filters = this.appliedFilters();
