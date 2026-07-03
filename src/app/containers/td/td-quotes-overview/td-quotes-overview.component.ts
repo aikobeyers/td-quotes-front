@@ -27,6 +27,8 @@ import { TdQuoteAuthorWithId } from '../../../models/TdQuoteAuthor';
 import { TdQuoteGameComponent } from '../td-quote-game/td-quote-game.component';
 import { TdQuotesLeaderboardComponent } from '../td-quotes-leaderboard/td-quotes-leaderboard.component';
 import { PwaInstallService } from '../../../services/pwa-install';
+import { TdActiveUserModalComponent } from './components/active-user-modal/td-active-user-modal.component';
+import { TdSecretModalComponent } from './components/secret-modal/td-secret-modal.component';
 
 @Component({
   selector: 'app-td-quotes-overview',
@@ -39,6 +41,8 @@ import { PwaInstallService } from '../../../services/pwa-install';
     TdQuoteCreateComponent,
     TdQuoteGameComponent,
     TdQuotesLeaderboardComponent,
+    TdActiveUserModalComponent,
+    TdSecretModalComponent,
     FormsModule,
   ],
   templateUrl: './td-quotes-overview.component.html',
