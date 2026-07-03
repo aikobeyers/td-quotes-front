@@ -10,7 +10,7 @@ import {
 import { DOCUMENT } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { TdQuotesService } from '../../../services/td-quotes.service';
-import { take } from 'rxjs';
+import { catchError, forkJoin, of, take } from 'rxjs';
 import { SkeletonComponent } from '../../../components/skeleton/skeleton.component';
 import { TdQuoteWithId } from '../../../models/TdQuote';
 import { FiltersStore } from '../../../stores/filters.store';
@@ -40,7 +40,7 @@ export class TdQuoteGameComponent implements OnDestroy {
   });
   public authorOptions = signal<TdQuoteAuthorWithId[]>([]);
   public selectedAuthorId = signal<string | null>(null);
-  public selectedGuesserId = signal<string | null>(null);
+  public selectedGuesserIds = signal<string[]>([]);
   public feedbackType = signal<'correct' | 'incorrect' | null>(null);
   public feedbackMessage = signal('');
   public stepIndex = computed(() => {
@@ -61,8 +61,21 @@ export class TdQuoteGameComponent implements OnDestroy {
     return 4;
   });
   public progressPercent = computed(() => {
-    const totalSteps = 4;
-    return (this.stepIndex() / totalSteps) * 100;
+    const stage = this.gameStage();
+
+    if (stage === 'quote' || stage === 'authors') {
+      return 0;
+    }
+
+    if (stage === 'feedback') {
+      return 33;
+    }
+
+    if (stage === 'guesser') {
+      return 66;
+    }
+
+    return 100;
   });
   public correctAuthorName = computed(() => {
     return this.randomQuote()?.by?.name ?? 'Unknown';
@@ -77,11 +90,11 @@ export class TdQuoteGameComponent implements OnDestroy {
 
   public startNewRound(): void {
     this.isLoading.set(true);
-    this.gameStage.set('quote');
+    this.gameStage.set('authors');
     this.feedbackType.set(null);
     this.feedbackMessage.set('');
     this.selectedAuthorId.set(null);
-    this.selectedGuesserId.set(null);
+    this.selectedGuesserIds.set([]);
     this.authorOptions.set(this.shuffleAuthors(this.authors()));
 
     this.tdQuotesService
@@ -106,7 +119,7 @@ export class TdQuoteGameComponent implements OnDestroy {
 
     this.gameStage.set('authors');
     this.selectedAuthorId.set(null);
-    this.selectedGuesserId.set(null);
+    this.selectedGuesserIds.set([]);
   }
 
   selectAuthor(authorId: string): void {
@@ -115,7 +128,13 @@ export class TdQuoteGameComponent implements OnDestroy {
     }
 
     if (this.gameStage() === 'guesser') {
-      this.selectedGuesserId.set(authorId);
+      this.selectedGuesserIds.update((selectedIds) => {
+        if (selectedIds.includes(authorId)) {
+          return selectedIds.filter((id) => id !== authorId);
+        }
+
+        return [...selectedIds, authorId];
+      });
     }
   }
 
@@ -144,17 +163,29 @@ export class TdQuoteGameComponent implements OnDestroy {
     }
 
     if (this.gameStage() === 'guesser') {
-      const guesserId = this.selectedGuesserId();
-      if (!guesserId) {
+      const guesserIds = this.selectedGuesserIds();
+      if (guesserIds.length === 0) {
         return;
       }
+
       this.isUpdatingScore.set(true);
-      this.tdQuotesService
-        .updateAuthorScore(guesserId)
+      forkJoin(
+        guesserIds.map((guesserId) =>
+          this.tdQuotesService.updateAuthorScore(guesserId).pipe(
+            take(1),
+            catchError(() => of(null))
+          )
+        )
+      )
         .pipe(take(1))
         .subscribe({
-          next: (updatedAuthor) => {
-            this.store.updateAuthor(updatedAuthor);
+          next: (updatedAuthors) => {
+            for (const updatedAuthor of updatedAuthors) {
+              if (updatedAuthor) {
+                this.store.updateAuthor(updatedAuthor);
+              }
+            }
+
             this.gameStage.set('leaderboard');
             this.isUpdatingScore.set(false);
           },
@@ -172,7 +203,7 @@ export class TdQuoteGameComponent implements OnDestroy {
     }
 
     this.gameStage.set('guesser');
-    this.selectedGuesserId.set(null);
+    this.selectedGuesserIds.set([]);
   }
 
   public isAuthorSelected(authorId: string): boolean {
@@ -180,7 +211,7 @@ export class TdQuoteGameComponent implements OnDestroy {
       return this.selectedAuthorId() === authorId;
     }
 
-    return this.selectedGuesserId() === authorId;
+    return this.selectedGuesserIds().includes(authorId);
   }
 
   closeGame(): void {
