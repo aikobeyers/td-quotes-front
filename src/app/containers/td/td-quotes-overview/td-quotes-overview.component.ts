@@ -17,7 +17,7 @@ import { CommonModule } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-import { FiltersStore } from '../../../stores/filters.store';
+import { FiltersStore, QuoteSort } from '../../../stores/filters.store';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TdQuoteFiltersComponent } from '../td-quote-filters/td-quote-filters.component';
@@ -101,7 +101,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isQuickFabOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
-  public sortMode = signal<'standard' | 'asc' | 'desc' | 'random'>('random');
+  public sortMode = this.store.sort;
   public randomOrderRank = signal<Record<string, number>>({});
   public activeUser = signal<{ id: string; name: string } | null>(
     this.loadActiveUser()
@@ -141,36 +141,6 @@ export class TdQuotesOverviewComponent implements OnInit {
   public displayedQuotes = computed(() => {
     const quotes = [...this.quotes()];
     const mode = this.sortMode();
-    const scope = this.appliedFilters().scope;
-
-    if (scope === 'favorites' && mode === 'random') {
-      return quotes;
-    }
-
-    if (scope === 'recent' && (mode === 'standard' || mode === 'random')) {
-      return quotes.sort((quoteA, quoteB) => {
-        const parsedDateA = this.parseDateForSort(quoteA.date);
-        const parsedDateB = this.parseDateForSort(quoteB.date);
-
-        if (parsedDateA.isValid !== parsedDateB.isValid) {
-          return parsedDateA.isValid ? -1 : 1;
-        }
-
-        if (!parsedDateA.isValid && !parsedDateB.isValid) {
-          return quoteA.value.localeCompare(quoteB.value);
-        }
-
-        if (parsedDateA.timestamp !== parsedDateB.timestamp) {
-          return parsedDateB.timestamp - parsedDateA.timestamp;
-        }
-
-        return quoteA.value.localeCompare(quoteB.value);
-      });
-    }
-
-    if (mode === 'standard') {
-      return quotes;
-    }
 
     if (mode === 'asc') {
       return quotes.sort((quoteA, quoteB) => {
@@ -222,16 +192,7 @@ export class TdQuotesOverviewComponent implements OnInit {
     });
   });
   public sortModeIcon = computed(() => {
-    const scope = this.appliedFilters().scope;
     const mode = this.sortMode();
-
-    if (scope === 'favorites' && mode === 'random') {
-      return 'sort';
-    }
-
-    if (scope === 'recent' && mode === 'random') {
-      return 'south';
-    }
 
     if (mode === 'asc') {
       return 'north';
@@ -247,52 +208,48 @@ export class TdQuotesOverviewComponent implements OnInit {
 
     return 'sort';
   });
-  public sortModeLabel = computed(() => {
-    const scope = this.appliedFilters().scope;
-    const mode = this.sortMode();
-
-    if (scope === 'favorites' && mode === 'random') {
-      return 'Sort: standard';
-    }
-
-    if (scope === 'recent' && mode === 'random') {
-      return 'Sort: descending';
-    }
-
-    if (mode === 'asc') {
-      return 'Sort: ascending';
-    }
-
-    if (mode === 'desc') {
-      return 'Sort: descending';
-    }
-
-    if (mode === 'random') {
-      return 'Sort: random';
-    }
-
-    return 'Sort: standard';
-  });
-  public isSortButtonActive = computed(() => {
-    const scope = this.appliedFilters().scope;
-    const mode = this.sortMode();
-
-    if (scope === 'favorites' && mode === 'random') {
-      return false;
-    }
-
-    return mode !== 'standard';
-  });
   public activeFilterPills = computed(() => {
     const filters = this.appliedFilters();
-    const pills: string[] = [this.formatScopeLabel(filters.scope)];
+    const pills: Array<{
+      key: string;
+      kind: 'text' | 'sort';
+      text?: string;
+      icon?: string;
+      ariaLabel: string;
+    }> = [];
+
+    if (filters.scope !== 'all') {
+      pills.push({
+        key: `scope-${filters.scope}`,
+        kind: 'text',
+        text: this.formatScopeLabel(filters.scope),
+        ariaLabel: `Scope: ${this.formatScopeLabel(filters.scope)}`,
+      });
+    }
+
+    pills.push({
+      key: `sort-${filters.sort}`,
+      kind: 'sort',
+      icon: this.sortModeIcon(),
+      ariaLabel: this.formatSortLabel(filters.sort),
+    });
 
     if (filters.quoteQuery.trim().length > 0) {
-      pills.push(`Search: ${filters.quoteQuery.trim()}`);
+      pills.push({
+        key: `search-${filters.quoteQuery.trim()}`,
+        kind: 'text',
+        text: `Search: ${filters.quoteQuery.trim()}`,
+        ariaLabel: `Search: ${filters.quoteQuery.trim()}`,
+      });
     }
 
     for (const author of filters.by) {
-      pills.push(`By: ${author}`);
+      pills.push({
+        key: `author-${author}`,
+        kind: 'text',
+        text: `By: ${author}`,
+        ariaLabel: `By: ${author}`,
+      });
     }
 
     return pills;
@@ -307,8 +264,8 @@ export class TdQuotesOverviewComponent implements OnInit {
     const sortHint = this.route.snapshot.queryParamMap.get('sort');
     if (sortHint === 'recent' || sortHint === 'desc') {
       this.store.resetFilters();
+      this.store.setSort('desc');
       this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
-      this.sortMode.set('desc');
     }
 
     this.tdQuotesService
@@ -450,29 +407,6 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.closeHeaderMenu();
     this.closeQuickFab();
     this.filtersComponent.openFilters();
-  }
-
-  public cycleSortMode(): void {
-    const currentMode = this.sortMode();
-
-    if (currentMode === 'standard') {
-      this.sortMode.set('asc');
-      return;
-    }
-
-    if (currentMode === 'asc') {
-      this.sortMode.set('desc');
-      return;
-    }
-
-    if (currentMode === 'desc') {
-      this.sortMode.set('random');
-      this.refreshRandomOrder();
-      return;
-    }
-
-    this.sortMode.set('standard');
-    this.randomOrderRank.set({});
   }
 
   public toggleHeaderMenu(): void {
@@ -861,17 +795,31 @@ export class TdQuotesOverviewComponent implements OnInit {
     by: string[];
     quoteQuery: string;
     scope: 'all' | 'recent' | 'favorites';
+    sort: QuoteSort;
   } {
     const filters = this.store.filters();
     return {
       by: [...filters.by],
       quoteQuery: filters.quoteQuery,
       scope: filters.scope,
+      sort: filters.sort,
     };
   }
 
   private formatScopeLabel(scope: 'all' | 'recent' | 'favorites'): string {
     return scope.charAt(0).toUpperCase() + scope.slice(1);
+  }
+
+  private formatSortLabel(sort: QuoteSort): string {
+    if (sort === 'desc') {
+      return 'Sort: newest first';
+    }
+
+    if (sort === 'asc') {
+      return 'Sort: oldest first';
+    }
+
+    return 'Sort: random';
   }
 
   private pickRandomNotificationCopy(options: string[], fallback: string): string {

@@ -56,19 +56,15 @@
 
         <div class="header--filter-pills">
             @for (pill of activeFilterPills(); track pill) {
-                <span class="filter-pill">{{ pill }}</span>
+                <span class="filter-pill" [attr.aria-label]="pill.ariaLabel">
+                    @if (pill.kind === 'sort') {
+                        <mat-icon [fontIcon]="pill.icon || 'sort'" aria-hidden="true"></mat-icon>
+                    } @else {
+                        {{ pill.text }}
+                    }
+                </span>
             }
         </div>
-
-        <button
-            class="icon-button sort-button"
-            [class.active]="isSortButtonActive()"
-            type="button"
-            [attr.aria-label]="sortModeLabel()"
-            (click)="cycleSortMode()"
-        >
-            <mat-icon [fontIcon]="sortModeIcon()"></mat-icon>
-        </button>
     </div>
 
     <div class="td-quotes-overview--container">

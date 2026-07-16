@@ -229,22 +229,18 @@
                 font-size: 12px;
                 font-weight: 600;
                 letter-spacing: 0.01em;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+
+                mat-icon {
+                    font-size: 16px;
+                    width: 16px;
+                    height: 16px;
+                    line-height: 16px;
+                }
             }
         }
-
-        .sort-button {
-            margin-left: auto;
-            flex-shrink: 0;
-        }
-
-        .sort-button {
-            &.active {
-                border-color: #b7c2d3;
-                background: #e8edf5;
-                color: #20324a;
-            }
-        }
-
     }
 
     .td-quotes-overview--container {

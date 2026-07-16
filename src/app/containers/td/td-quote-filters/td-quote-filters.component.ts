@@ -3,7 +3,7 @@ import { DOCUMENT } from '@angular/common';
 import { FiltersStore } from '../../../stores/filters.store';
 import { NgClass } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
-import { QuoteScope } from '../../../stores/filters.store';
+import { QuoteScope, QuoteSort } from '../../../stores/filters.store';
 
 @Component({
   selector: 'app-td-quote-filters',
@@ -19,10 +19,11 @@ export class TdQuoteFiltersComponent implements OnDestroy {
   public authors = this.store.authors;
   public quoteQuery = this.store.quoteQuery;
   public scope = this.store.scope;
+  public sort = this.store.sort;
 
   public isOpen = false;
 
-  public filterSnapshot?: { by: string[]; quoteQuery: string; scope: QuoteScope };
+  public filterSnapshot?: { by: string[]; quoteQuery: string; scope: QuoteScope; sort: QuoteSort };
 
   public closeFiltersEmitter = output<boolean>();
 
@@ -40,6 +41,10 @@ export class TdQuoteFiltersComponent implements OnDestroy {
 
   setScope(scope: QuoteScope): void {
     this.store.setScope(scope);
+  }
+
+  setSort(sort: QuoteSort): void {
+    this.store.setSort(sort);
   }
 
   isSelected(author: string): boolean {
@@ -73,11 +78,12 @@ export class TdQuoteFiltersComponent implements OnDestroy {
     this.document.body.classList.toggle('filters--open', isOpen);
   }
 
-  private takeFiltersSnapshot(): { by: string[]; quoteQuery: string; scope: QuoteScope } {
+  private takeFiltersSnapshot(): { by: string[]; quoteQuery: string; scope: QuoteScope; sort: QuoteSort } {
     return {
       by: [...this.store.filterBy()],
       quoteQuery: this.store.quoteQuery(),
       scope: this.store.scope(),
+      sort: this.store.sort(),
     };
   }
 }
