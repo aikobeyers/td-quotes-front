@@ -16,6 +16,7 @@ import { TdQuoteCardComponent } from './components/td-quote-card/td-quote-card.c
 import { CommonModule } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
 import { FiltersStore } from '../../../stores/filters.store';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -75,6 +76,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly tdQuotesService = inject(TdQuotesService);
   private readonly pushNotificationsService = inject(PushNotificationsService);
   private readonly titleService = inject(Title);
+  private readonly route = inject(ActivatedRoute);
   private readonly store = inject(FiltersStore);
   private readonly secretTapThresholdMs = 200;
   private readonly secretTapTarget = 5;
@@ -297,6 +299,14 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public ngOnInit(): void {
     this.titleService.setTitle('TD Quotes');
+
+    const sortHint = this.route.snapshot.queryParamMap.get('sort');
+    if (sortHint === 'recent' || sortHint === 'desc') {
+      this.store.resetFilters();
+      this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
+      this.sortMode.set('desc');
+    }
+
     this.tdQuotesService
       .getAuthors()
       .pipe(take(1))
