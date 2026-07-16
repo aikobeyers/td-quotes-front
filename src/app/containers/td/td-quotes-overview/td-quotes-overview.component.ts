@@ -16,7 +16,8 @@ import { TdQuoteCardComponent } from './components/td-quote-card/td-quote-card.c
 import { CommonModule } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
-import { FiltersStore } from '../../../stores/filters.store';
+import { ActivatedRoute } from '@angular/router';
+import { FiltersStore, QuoteSort } from '../../../stores/filters.store';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TdQuoteFiltersComponent } from '../td-quote-filters/td-quote-filters.component';
@@ -68,13 +69,17 @@ export class TdQuotesOverviewComponent implements OnInit {
   @ViewChild('headerActions')
   private headerActionsElement?: ElementRef<HTMLElement>;
 
-    private readonly pwaInstallService = inject(PwaInstallService);
+  @ViewChild('quickFabCluster')
+  private quickFabClusterElement?: ElementRef<HTMLElement>;
+
+  private readonly pwaInstallService = inject(PwaInstallService);
 
   readonly canInstall = this.pwaInstallService.canInstall;
 
   private readonly tdQuotesService = inject(TdQuotesService);
   private readonly pushNotificationsService = inject(PushNotificationsService);
   private readonly titleService = inject(Title);
+  private readonly route = inject(ActivatedRoute);
   private readonly store = inject(FiltersStore);
   private readonly secretTapThresholdMs = 200;
   private readonly secretTapTarget = 5;
@@ -93,9 +98,10 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isSavingActiveUser = signal(false);
   public activeUserSaveError = signal('');
   public isHeaderMenuOpen = signal(false);
+  public isQuickFabOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
-  public sortMode = signal<'standard' | 'asc' | 'desc' | 'random'>('random');
+  public sortMode = this.store.sort;
   public randomOrderRank = signal<Record<string, number>>({});
   public activeUser = signal<{ id: string; name: string } | null>(
     this.loadActiveUser()
@@ -141,7 +147,7 @@ export class TdQuotesOverviewComponent implements OnInit {
       return quotes;
     }
 
-    if (scope === 'recent' && (mode === 'standard' || mode === 'random')) {
+    if (scope === 'recent' && mode === 'random') {
       return quotes.sort((quoteA, quoteB) => {
         const parsedDateA = this.parseDateForSort(quoteA.date);
         const parsedDateB = this.parseDateForSort(quoteB.date);
@@ -160,10 +166,6 @@ export class TdQuotesOverviewComponent implements OnInit {
 
         return quoteA.value.localeCompare(quoteB.value);
       });
-    }
-
-    if (mode === 'standard') {
-      return quotes;
     }
 
     if (mode === 'asc') {
@@ -241,6 +243,7 @@ export class TdQuotesOverviewComponent implements OnInit {
 
     return 'sort';
   });
+
   public sortModeLabel = computed(() => {
     const scope = this.appliedFilters().scope;
     const mode = this.sortMode();
@@ -275,18 +278,50 @@ export class TdQuotesOverviewComponent implements OnInit {
       return false;
     }
 
-    return mode !== 'standard';
+    return mode !== 'random';
   });
   public activeFilterPills = computed(() => {
     const filters = this.appliedFilters();
-    const pills: string[] = [this.formatScopeLabel(filters.scope)];
+    const pills: Array<{
+      key: string;
+      kind: 'text' | 'sort';
+      text?: string;
+      icon?: string;
+      ariaLabel: string;
+    }> = [];
+
+    if (filters.scope !== 'all') {
+      pills.push({
+        key: `scope-${filters.scope}`,
+        kind: 'text',
+        text: this.formatScopeLabel(filters.scope),
+        ariaLabel: `Scope: ${this.formatScopeLabel(filters.scope)}`,
+      });
+    }
+
+    pills.push({
+      key: `sort-${filters.sort}`,
+      kind: 'sort',
+      icon: this.sortModeIcon(),
+      ariaLabel: this.formatSortLabel(filters.sort),
+    });
 
     if (filters.quoteQuery.trim().length > 0) {
-      pills.push(`Search: ${filters.quoteQuery.trim()}`);
+      pills.push({
+        key: `search-${filters.quoteQuery.trim()}`,
+        kind: 'text',
+        text: `Search: ${filters.quoteQuery.trim()}`,
+        ariaLabel: `Search: ${filters.quoteQuery.trim()}`,
+      });
     }
 
     for (const author of filters.by) {
-      pills.push(`By: ${author}`);
+      pills.push({
+        key: `author-${author}`,
+        kind: 'text',
+        text: `By: ${author}`,
+        ariaLabel: `By: ${author}`,
+      });
     }
 
     return pills;
@@ -297,6 +332,14 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public ngOnInit(): void {
     this.titleService.setTitle('TD Quotes');
+
+    const sortHint = this.route.snapshot.queryParamMap.get('sort');
+    if (sortHint === 'recent' || sortHint === 'desc') {
+      this.store.resetFilters();
+      this.store.setSort('desc');
+      this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
+    }
+
     this.tdQuotesService
       .getAuthors()
       .pipe(take(1))
@@ -434,33 +477,12 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public openFilters(): void {
     this.closeHeaderMenu();
+    this.closeQuickFab();
     this.filtersComponent.openFilters();
   }
 
-  public cycleSortMode(): void {
-    const currentMode = this.sortMode();
-
-    if (currentMode === 'standard') {
-      this.sortMode.set('asc');
-      return;
-    }
-
-    if (currentMode === 'asc') {
-      this.sortMode.set('desc');
-      return;
-    }
-
-    if (currentMode === 'desc') {
-      this.sortMode.set('random');
-      this.refreshRandomOrder();
-      return;
-    }
-
-    this.sortMode.set('standard');
-    this.randomOrderRank.set({});
-  }
-
   public toggleHeaderMenu(): void {
+    this.closeQuickFab();
     this.isHeaderMenuOpen.update((isOpen) => !isOpen);
   }
 
@@ -468,30 +490,36 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.isHeaderMenuOpen.set(false);
   }
 
+  public toggleQuickFab(): void {
+    this.closeHeaderMenu();
+    this.isQuickFabOpen.update((isOpen) => !isOpen);
+  }
+
+  public closeQuickFab(): void {
+    this.isQuickFabOpen.set(false);
+  }
+
   @HostListener('document:pointerdown', ['$event'])
   public onDocumentPointerDown(event: PointerEvent): void {
-    if (!this.isHeaderMenuOpen()) {
+    const target = event.target as Node | null;
+    if (!target) {
       return;
     }
 
     const actionsElement = this.headerActionsElement?.nativeElement;
-    const target = event.target as Node | null;
-    if (!actionsElement || !target) {
-      return;
-    }
-
-    if (!actionsElement.contains(target)) {
+    if (this.isHeaderMenuOpen() && actionsElement && !actionsElement.contains(target)) {
       this.closeHeaderMenu();
     }
-  }
 
-  public openGameFromMenu(): void {
-    this.closeHeaderMenu();
-    this.openGame();
+    const quickFabElement = this.quickFabClusterElement?.nativeElement;
+    if (this.isQuickFabOpen() && quickFabElement && !quickFabElement.contains(target)) {
+      this.closeQuickFab();
+    }
   }
 
   public openLeaderboardFromMenu(): void {
     this.closeHeaderMenu();
+    this.closeQuickFab();
     this.openLeaderboard();
   }
 
@@ -623,39 +651,49 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public openCreate(): void {
     this.closeHeaderMenu();
+    this.closeQuickFab();
     this.createComponent.openCreate();
   }
 
   public openGame(): void {
+    this.closeHeaderMenu();
+    this.closeQuickFab();
     this.gameComponent.openGame();
   }
 
   public openLeaderboard(): void {
+    this.closeQuickFab();
     this.leaderboardComponent.openLeaderboard();
   }
 
   public getQuotes(skip = false): void {
-    if (!skip) {
-      this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
-      this.isLoading.set(true);
-      this.tdQuotesService
-        .getTdQuotes()
-        .pipe(take(1))
-        .subscribe({
-          next: (quotes) => {
-            this.store.setQuotes(quotes);
+    this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
 
-            if (this.sortMode() === 'random') {
-              this.refreshRandomOrder(quotes);
-            }
-
-            this.isLoading.set(false);
-          },
-          error: () => {
-            this.isLoading.set(false);
-          },
-        });
+    if (skip) {
+      if (this.sortMode() === 'random') {
+        this.refreshRandomOrder();
+      }
+      return;
     }
+
+    this.isLoading.set(true);
+    this.tdQuotesService
+      .getTdQuotes()
+      .pipe(take(1))
+      .subscribe({
+        next: (quotes) => {
+          this.store.setQuotes(quotes);
+
+          if (this.sortMode() === 'random') {
+            this.refreshRandomOrder(quotes);
+          }
+
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.isLoading.set(false);
+        },
+      });
   }
 
   public isFavorite(quoteId: string): boolean {
@@ -835,17 +873,31 @@ export class TdQuotesOverviewComponent implements OnInit {
     by: string[];
     quoteQuery: string;
     scope: 'all' | 'recent' | 'favorites';
+    sort: QuoteSort;
   } {
     const filters = this.store.filters();
     return {
       by: [...filters.by],
       quoteQuery: filters.quoteQuery,
       scope: filters.scope,
+      sort: filters.sort,
     };
   }
 
   private formatScopeLabel(scope: 'all' | 'recent' | 'favorites'): string {
     return scope.charAt(0).toUpperCase() + scope.slice(1);
+  }
+
+  private formatSortLabel(sort: QuoteSort): string {
+    if (sort === 'desc') {
+      return 'Sort: newest first';
+    }
+
+    if (sort === 'asc') {
+      return 'Sort: oldest first';
+    }
+
+    return 'Sort: random';
   }
 
   private pickRandomNotificationCopy(options: string[], fallback: string): string {

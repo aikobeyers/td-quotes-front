@@ -5,12 +5,14 @@ import { TdQuote, TdQuoteWithId } from '../models/TdQuote';
 import { TdQuoteAuthorWithId } from '../models/TdQuoteAuthor';
 
 export type QuoteScope = 'all' | 'recent' | 'favorites';
+export type QuoteSort = 'desc' | 'asc' | 'random';
 
 export type FiltersState = {
     filters:{
         by: string[];
         quoteQuery: string;
-    scope: QuoteScope;
+        scope: QuoteScope;
+        sort: QuoteSort;
     };
     authors: TdQuoteAuthorWithId[];
   quotes: TdQuoteWithId[];
@@ -20,7 +22,8 @@ const initialFiltersState: FiltersState = {
     filters: {
         by: [],
         quoteQuery: '',
-      scope: 'all',
+        scope: 'all',
+        sort: 'random',
     },
     authors: [],
     quotes: [],
@@ -39,7 +42,10 @@ export const FiltersStore = signalStore(
     setScope(scope: QuoteScope): void {
       patchState(store, { filters: { ...store.filters(), scope } });
     },
-    setFilters(filters: Partial<{ by: string[]; quoteQuery: string; scope: QuoteScope }>): void {
+    setSort(sort: QuoteSort): void {
+      patchState(store, { filters: { ...store.filters(), sort } });
+    },
+    setFilters(filters: Partial<{ by: string[]; quoteQuery: string; scope: QuoteScope; sort: QuoteSort }>): void {
       patchState(store, { filters: { ...store.filters(), ...filters } });
     },
     setAuthors(authors: TdQuoteAuthorWithId[]): void {
@@ -68,7 +74,7 @@ export const FiltersStore = signalStore(
       }
     },
     resetFilters(): void {
-      patchState(store, { filters: { by: [], quoteQuery: '', scope: 'all' } });
+      patchState(store, { filters: { by: [], quoteQuery: '', scope: 'all', sort: 'random' } });
     },
     toggleAuthor(author: string): void {
       const currentAuthors = store.filters().by;
@@ -83,6 +89,7 @@ export const FiltersStore = signalStore(
     filterBy: computed(() => store.filters().by),
     quoteQuery: computed(() => store.filters().quoteQuery),
     scope: computed(() => store.filters().scope),
+    sort: computed(() => store.filters().sort),
     authors: computed(() => store.authors()),
     quotes: computed(() => store.quotes()),
   }))

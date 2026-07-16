@@ -3,7 +3,7 @@ import { DOCUMENT } from '@angular/common';
 import { FiltersStore } from '../../../stores/filters.store';
 import { NgClass } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
-import { QuoteScope } from '../../../stores/filters.store';
+import { QuoteScope, QuoteSort } from '../../../stores/filters.store';
 
 @Component({
   selector: 'app-td-quote-filters',
@@ -19,10 +19,11 @@ export class TdQuoteFiltersComponent implements OnDestroy {
   public authors = this.store.authors;
   public quoteQuery = this.store.quoteQuery;
   public scope = this.store.scope;
+  public sort = this.store.sort;
 
   public isOpen = false;
 
-  public filterSnapshot?: { by: string[]; quoteQuery: string; scope: QuoteScope };
+  public filterSnapshot?: { by: string[]; quoteQuery: string; scope: QuoteScope; sort: QuoteSort };
 
   public closeFiltersEmitter = output<boolean>();
 
@@ -42,6 +43,10 @@ export class TdQuoteFiltersComponent implements OnDestroy {
     this.store.setScope(scope);
   }
 
+  setSort(sort: QuoteSort): void {
+    this.store.setSort(sort);
+  }
+
   isSelected(author: string): boolean {
     return this.store.filterBy().includes(author);
   }
@@ -54,9 +59,12 @@ export class TdQuoteFiltersComponent implements OnDestroy {
     if (revert && this.filterSnapshot) {
       this.store.setFilters(this.filterSnapshot);
     }
+
+    const shouldSkipRefetch = revert || this.didOnlySortChange();
+
     this.setOpen(false);
     this.filterSnapshot = undefined;
-    this.closeFiltersEmitter.emit(revert);
+    this.closeFiltersEmitter.emit(shouldSkipRefetch);
   }
 
   openFilters(): void {
@@ -73,11 +81,36 @@ export class TdQuoteFiltersComponent implements OnDestroy {
     this.document.body.classList.toggle('filters--open', isOpen);
   }
 
-  private takeFiltersSnapshot(): { by: string[]; quoteQuery: string; scope: QuoteScope } {
+  private takeFiltersSnapshot(): { by: string[]; quoteQuery: string; scope: QuoteScope; sort: QuoteSort } {
     return {
       by: [...this.store.filterBy()],
       quoteQuery: this.store.quoteQuery(),
       scope: this.store.scope(),
+      sort: this.store.sort(),
     };
+  }
+
+  private didOnlySortChange(): boolean {
+    if (!this.filterSnapshot) {
+      return false;
+    }
+
+    const currentFilters = this.takeFiltersSnapshot();
+    const byUnchanged = this.areAuthorFiltersEqual(this.filterSnapshot.by, currentFilters.by);
+    const queryUnchanged = this.filterSnapshot.quoteQuery === currentFilters.quoteQuery;
+    const scopeUnchanged = this.filterSnapshot.scope === currentFilters.scope;
+    const sortChanged = this.filterSnapshot.sort !== currentFilters.sort;
+
+    return byUnchanged && queryUnchanged && scopeUnchanged && sortChanged;
+  }
+
+  private areAuthorFiltersEqual(left: string[], right: string[]): boolean {
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    const leftSorted = [...left].sort();
+    const rightSorted = [...right].sort();
+    return leftSorted.every((value, index) => value === rightSorted[index]);
   }
 }

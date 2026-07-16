@@ -9,6 +9,39 @@
 
         <div class="filters--content">
             <div class="scope-filter--wrapper">
+                <h3>Sort</h3>
+                <div class="scope-filter--tabs">
+                    <button
+                        type="button"
+                        class="scope-tab sort-tab"
+                        [class.active]="sort() === 'desc'"
+                        aria-label="Sort by newest first"
+                        (click)="setSort('desc')"
+                    >
+                        <mat-icon fontIcon="south" aria-hidden="true"></mat-icon>
+                    </button>
+                    <button
+                        type="button"
+                        class="scope-tab sort-tab"
+                        [class.active]="sort() === 'asc'"
+                        aria-label="Sort by oldest first"
+                        (click)="setSort('asc')"
+                    >
+                        <mat-icon fontIcon="north" aria-hidden="true"></mat-icon>
+                    </button>
+                    <button
+                        type="button"
+                        class="scope-tab sort-tab"
+                        [class.active]="sort() === 'random'"
+                        aria-label="Sort randomly"
+                        (click)="setSort('random')"
+                    >
+                        <mat-icon fontIcon="shuffle" aria-hidden="true"></mat-icon>
+                    </button>
+                </div>
+            </div>
+
+            <div class="scope-filter--wrapper">
                 <h3>Filtering on {{ scope() === 'favorites' ? 'favorite' : scope() }} quotes</h3>
                 <div class="scope-filter--tabs">
                     <button
