@@ -147,7 +147,7 @@ export class TdQuotesOverviewComponent implements OnInit {
       return quotes;
     }
 
-    if (scope === 'recent' && (mode === 'standard' || mode === 'random')) {
+    if (scope === 'recent' && mode === 'random') {
       return quotes.sort((quoteA, quoteB) => {
         const parsedDateA = this.parseDateForSort(quoteA.date);
         const parsedDateB = this.parseDateForSort(quoteB.date);
@@ -278,7 +278,7 @@ export class TdQuotesOverviewComponent implements OnInit {
       return false;
     }
 
-    return mode !== 'standard';
+    return mode !== 'random';
   });
   public activeFilterPills = computed(() => {
     const filters = this.appliedFilters();
@@ -667,27 +667,33 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   public getQuotes(skip = false): void {
-    if (!skip) {
-      this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
-      this.isLoading.set(true);
-      this.tdQuotesService
-        .getTdQuotes()
-        .pipe(take(1))
-        .subscribe({
-          next: (quotes) => {
-            this.store.setQuotes(quotes);
+    this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
 
-            if (this.sortMode() === 'random') {
-              this.refreshRandomOrder(quotes);
-            }
-
-            this.isLoading.set(false);
-          },
-          error: () => {
-            this.isLoading.set(false);
-          },
-        });
+    if (skip) {
+      if (this.sortMode() === 'random') {
+        this.refreshRandomOrder();
+      }
+      return;
     }
+
+    this.isLoading.set(true);
+    this.tdQuotesService
+      .getTdQuotes()
+      .pipe(take(1))
+      .subscribe({
+        next: (quotes) => {
+          this.store.setQuotes(quotes);
+
+          if (this.sortMode() === 'random') {
+            this.refreshRandomOrder(quotes);
+          }
+
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.isLoading.set(false);
+        },
+      });
   }
 
   public isFavorite(quoteId: string): boolean {

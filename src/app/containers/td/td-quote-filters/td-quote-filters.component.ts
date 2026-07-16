@@ -59,9 +59,12 @@ export class TdQuoteFiltersComponent implements OnDestroy {
     if (revert && this.filterSnapshot) {
       this.store.setFilters(this.filterSnapshot);
     }
+
+    const shouldSkipRefetch = revert || this.didOnlySortChange();
+
     this.setOpen(false);
     this.filterSnapshot = undefined;
-    this.closeFiltersEmitter.emit(revert);
+    this.closeFiltersEmitter.emit(shouldSkipRefetch);
   }
 
   openFilters(): void {
@@ -85,5 +88,29 @@ export class TdQuoteFiltersComponent implements OnDestroy {
       scope: this.store.scope(),
       sort: this.store.sort(),
     };
+  }
+
+  private didOnlySortChange(): boolean {
+    if (!this.filterSnapshot) {
+      return false;
+    }
+
+    const currentFilters = this.takeFiltersSnapshot();
+    const byUnchanged = this.areAuthorFiltersEqual(this.filterSnapshot.by, currentFilters.by);
+    const queryUnchanged = this.filterSnapshot.quoteQuery === currentFilters.quoteQuery;
+    const scopeUnchanged = this.filterSnapshot.scope === currentFilters.scope;
+    const sortChanged = this.filterSnapshot.sort !== currentFilters.sort;
+
+    return byUnchanged && queryUnchanged && scopeUnchanged && sortChanged;
+  }
+
+  private areAuthorFiltersEqual(left: string[], right: string[]): boolean {
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    const leftSorted = [...left].sort();
+    const rightSorted = [...right].sort();
+    return leftSorted.every((value, index) => value === rightSorted[index]);
   }
 }
