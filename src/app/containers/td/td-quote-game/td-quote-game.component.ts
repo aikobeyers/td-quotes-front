@@ -33,51 +33,24 @@ export class TdQuoteGameComponent implements OnDestroy {
   public isUpdatingScore = signal(false);
 
   public randomQuote = signal<TdQuoteWithId | null>(null);
-  public gameStage = signal<'quote' | 'authors' | 'feedback' | 'guesser' | 'leaderboard'>('quote');
+  public gameStage = signal<'guesser' | 'leaderboard'>('guesser');
   public authors = this.store.authors;
   public topThree = computed(() => {
     return [...this.authors()].sort((a, b) => b.score - a.score).slice(0, 3);
   });
   public authorOptions = signal<TdQuoteAuthorWithId[]>([]);
-  public selectedAuthorId = signal<string | null>(null);
   public selectedGuesserIds = signal<string[]>([]);
-  public feedbackType = signal<'correct' | 'incorrect' | null>(null);
-  public feedbackMessage = signal('');
   public stepIndex = computed(() => {
-    const stage = this.gameStage();
-
-    if (stage === 'quote') {
-      return 1;
-    }
-
-    if (stage === 'authors' || stage === 'feedback') {
-      return 2;
-    }
-
-    if (stage === 'guesser') {
-      return 3;
-    }
-
-    return 4;
+    return this.gameStage() === 'guesser' ? 1 : 2;
   });
   public progressPercent = computed(() => {
-    const stage = this.gameStage();
-
-    if (stage === 'quote' || stage === 'authors') {
+    if (this.gameStage() === 'guesser') {
       return 0;
-    }
-
-    if (stage === 'feedback') {
-      return 33;
-    }
-
-    if (stage === 'guesser') {
-      return 66;
     }
 
     return 100;
   });
-  public correctAuthorName = computed(() => {
+  public quoteAuthorName = computed(() => {
     return this.randomQuote()?.by?.name ?? 'Unknown';
   });
 
@@ -90,10 +63,7 @@ export class TdQuoteGameComponent implements OnDestroy {
 
   public startNewRound(): void {
     this.isLoading.set(true);
-    this.gameStage.set('authors');
-    this.feedbackType.set(null);
-    this.feedbackMessage.set('');
-    this.selectedAuthorId.set(null);
+    this.gameStage.set('guesser');
     this.selectedGuesserIds.set([]);
     this.authorOptions.set(this.shuffleAuthors(this.authors()));
 
@@ -112,106 +82,34 @@ export class TdQuoteGameComponent implements OnDestroy {
       });
   }
 
-  showAuthors(): void {
-    if (!this.randomQuote()) {
-      return;
-    }
-
-    this.gameStage.set('authors');
-    this.selectedAuthorId.set(null);
-    this.selectedGuesserIds.set([]);
-  }
-
   selectAuthor(authorId: string): void {
-    if (this.gameStage() === 'authors') {
-      this.selectedAuthorId.set(authorId);
-    }
-
-    if (this.gameStage() === 'guesser') {
-      this.selectedGuesserIds.update((selectedIds) => {
-        if (selectedIds.includes(authorId)) {
-          return selectedIds.filter((id) => id !== authorId);
-        }
-
-        return [...selectedIds, authorId];
-      });
-    }
-  }
-
-  submitSelection(): void {
-    if (this.gameStage() === 'authors') {
-      const correctAuthorId = this.randomQuote()?.by?._id;
-      const selectedAuthorId = this.selectedAuthorId();
-
-      if (!selectedAuthorId) {
-        return;
-      }
-
-      const isCorrect = selectedAuthorId === correctAuthorId;
-      this.feedbackType.set(isCorrect ? 'correct' : 'incorrect');
-      this.feedbackMessage.set(
-        isCorrect
-          ? `Nice. This quote was by ${this.correctAuthorName()}.`
-          : `Not quite. Try again.`
-      );
-      this.gameStage.set('feedback');
-
-      if (!isCorrect) {
-        this.selectedAuthorId.set(null);
-      }
+    if (this.gameStage() !== 'guesser') {
       return;
     }
 
-    if (this.gameStage() === 'guesser') {
-      const guesserIds = this.selectedGuesserIds();
-      if (guesserIds.length === 0) {
-        return;
+    this.selectedGuesserIds.update((selectedIds) => {
+      if (selectedIds.includes(authorId)) {
+        return selectedIds.filter((id) => id !== authorId);
       }
 
-      this.isUpdatingScore.set(true);
-      forkJoin(
-        guesserIds.map((guesserId) =>
-          this.tdQuotesService.updateAuthorScore(guesserId).pipe(
-            take(1),
-            catchError(() => of(null))
-          )
-        )
-      )
-        .pipe(take(1))
-        .subscribe({
-          next: (updatedAuthors) => {
-            for (const updatedAuthor of updatedAuthors) {
-              if (updatedAuthor) {
-                this.store.updateAuthor(updatedAuthor);
-              }
-            }
-
-            this.gameStage.set('leaderboard');
-            this.isUpdatingScore.set(false);
-          },
-          error: () => {
-            this.isUpdatingScore.set(false);
-          },
-        });
-    }
-  }
-
-  public continueFromFeedback(): void {
-    if (this.feedbackType() !== 'correct') {
-      this.gameStage.set('authors');
-      return;
-    }
-
-    this.gameStage.set('guesser');
-    this.selectedGuesserIds.set([]);
+      return [...selectedIds, authorId];
+    });
   }
 
   public isAuthorSelected(authorId: string): boolean {
-    if (this.gameStage() === 'authors') {
-      return this.selectedAuthorId() === authorId;
-    }
-
     return this.selectedGuesserIds().includes(authorId);
+  }
+
+  public hasSelectedGuessers(): boolean {
+    return this.selectedGuesserIds().length > 0;
+  }
+
+  public savePointsAndNewRound(): void {
+    this.savePoints(() => this.startNewRound());
+  }
+
+  public savePointsAndViewLeaderboard(): void {
+    this.savePoints(() => this.gameStage.set('leaderboard'));
   }
 
   closeGame(): void {
@@ -239,5 +137,38 @@ export class TdQuoteGameComponent implements OnDestroy {
     }
 
     return copy;
+  }
+
+  private savePoints(onSuccess: () => void): void {
+    const guesserIds = this.selectedGuesserIds();
+    if (guesserIds.length === 0 || this.isUpdatingScore()) {
+      return;
+    }
+
+    this.isUpdatingScore.set(true);
+    forkJoin(
+      guesserIds.map((guesserId) =>
+        this.tdQuotesService.updateAuthorScore(guesserId).pipe(
+          take(1),
+          catchError(() => of(null))
+        )
+      )
+    )
+      .pipe(take(1))
+      .subscribe({
+        next: (updatedAuthors) => {
+          for (const updatedAuthor of updatedAuthors) {
+            if (updatedAuthor) {
+              this.store.updateAuthor(updatedAuthor);
+            }
+          }
+
+          this.isUpdatingScore.set(false);
+          onSuccess();
+        },
+        error: () => {
+          this.isUpdatingScore.set(false);
+        },
+      });
   }
 }
