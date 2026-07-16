@@ -11,10 +11,6 @@
             </button>
         </div>
 
-        <div class="game--progress" aria-label="Game progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="progressPercent()">
-            <div class="game--progress-fill" [style.width.%]="progressPercent()"></div>
-        </div>
-
         <div class="game--content">
             @if (gameStage() !== 'leaderboard') {
                 <div class="game--quote-card">
