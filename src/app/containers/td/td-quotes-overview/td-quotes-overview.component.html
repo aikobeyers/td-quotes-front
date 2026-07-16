@@ -39,11 +39,6 @@
 
                     <div class="header-menu--section-label">Quick actions</div>
 
-                    <button type="button" class="menu-item" role="menuitem" (click)="openGameFromMenu()">
-                        <span class="menu-item--label">Play Quote Game</span>
-                        <mat-icon class="menu-item--icon" fontIcon="sports_esports"></mat-icon>
-                    </button>
-
                     <button type="button" class="menu-item" role="menuitem" (click)="openLeaderboardFromMenu()">
                         <span class="menu-item--label">View Leaderboard</span>
                         <mat-icon class="menu-item--icon" fontIcon="emoji_events"></mat-icon>
@@ -104,9 +99,44 @@
         }
     </div>
 
-    <button class="create-fab" type="button" (click)="openCreate()" aria-label="Create quote">
-        <mat-icon fontIcon="add"></mat-icon>
-    </button>
+    <div class="create-fab-cluster" #quickFabCluster [class.open]="isQuickFabOpen()">
+        <button
+            class="create-fab create-fab--game"
+            type="button"
+            [class.open]="isQuickFabOpen()"
+            [disabled]="!isQuickFabOpen()"
+            [attr.aria-hidden]="!isQuickFabOpen()"
+            [attr.tabindex]="isQuickFabOpen() ? 0 : -1"
+            aria-label="Play Quote Game"
+            (click)="openGame()"
+        >
+            <mat-icon fontIcon="sports_esports"></mat-icon>
+        </button>
+
+        <button
+            class="create-fab create-fab--create"
+            type="button"
+            [class.open]="isQuickFabOpen()"
+            [disabled]="!isQuickFabOpen()"
+            [attr.aria-hidden]="!isQuickFabOpen()"
+            [attr.tabindex]="isQuickFabOpen() ? 0 : -1"
+            aria-label="Create quote"
+            (click)="openCreate()"
+        >
+            <mat-icon fontIcon="add"></mat-icon>
+        </button>
+
+        <button
+            class="create-fab create-fab--toggle"
+            type="button"
+            [class.open]="isQuickFabOpen()"
+            [attr.aria-expanded]="isQuickFabOpen()"
+            [attr.aria-label]="isQuickFabOpen() ? 'Close quick actions' : 'Open quick actions'"
+            (click)="toggleQuickFab()"
+        >
+            <mat-icon [fontIcon]="isQuickFabOpen() ? 'add' : 'sentiment_very_satisfied'"></mat-icon>
+        </button>
+    </div>
 </div>
 
 <app-td-active-user-modal

@@ -69,7 +69,10 @@ export class TdQuotesOverviewComponent implements OnInit {
   @ViewChild('headerActions')
   private headerActionsElement?: ElementRef<HTMLElement>;
 
-    private readonly pwaInstallService = inject(PwaInstallService);
+  @ViewChild('quickFabCluster')
+  private quickFabClusterElement?: ElementRef<HTMLElement>;
+
+  private readonly pwaInstallService = inject(PwaInstallService);
 
   readonly canInstall = this.pwaInstallService.canInstall;
 
@@ -95,6 +98,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isSavingActiveUser = signal(false);
   public activeUserSaveError = signal('');
   public isHeaderMenuOpen = signal(false);
+  public isQuickFabOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
   public sortMode = signal<'standard' | 'asc' | 'desc' | 'random'>('random');
@@ -444,6 +448,7 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public openFilters(): void {
     this.closeHeaderMenu();
+    this.closeQuickFab();
     this.filtersComponent.openFilters();
   }
 
@@ -471,6 +476,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   }
 
   public toggleHeaderMenu(): void {
+    this.closeQuickFab();
     this.isHeaderMenuOpen.update((isOpen) => !isOpen);
   }
 
@@ -478,30 +484,36 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.isHeaderMenuOpen.set(false);
   }
 
+  public toggleQuickFab(): void {
+    this.closeHeaderMenu();
+    this.isQuickFabOpen.update((isOpen) => !isOpen);
+  }
+
+  public closeQuickFab(): void {
+    this.isQuickFabOpen.set(false);
+  }
+
   @HostListener('document:pointerdown', ['$event'])
   public onDocumentPointerDown(event: PointerEvent): void {
-    if (!this.isHeaderMenuOpen()) {
+    const target = event.target as Node | null;
+    if (!target) {
       return;
     }
 
     const actionsElement = this.headerActionsElement?.nativeElement;
-    const target = event.target as Node | null;
-    if (!actionsElement || !target) {
-      return;
-    }
-
-    if (!actionsElement.contains(target)) {
+    if (this.isHeaderMenuOpen() && actionsElement && !actionsElement.contains(target)) {
       this.closeHeaderMenu();
     }
-  }
 
-  public openGameFromMenu(): void {
-    this.closeHeaderMenu();
-    this.openGame();
+    const quickFabElement = this.quickFabClusterElement?.nativeElement;
+    if (this.isQuickFabOpen() && quickFabElement && !quickFabElement.contains(target)) {
+      this.closeQuickFab();
+    }
   }
 
   public openLeaderboardFromMenu(): void {
     this.closeHeaderMenu();
+    this.closeQuickFab();
     this.openLeaderboard();
   }
 
@@ -633,14 +645,18 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public openCreate(): void {
     this.closeHeaderMenu();
+    this.closeQuickFab();
     this.createComponent.openCreate();
   }
 
   public openGame(): void {
+    this.closeHeaderMenu();
+    this.closeQuickFab();
     this.gameComponent.openGame();
   }
 
   public openLeaderboard(): void {
+    this.closeQuickFab();
     this.leaderboardComponent.openLeaderboard();
   }
 

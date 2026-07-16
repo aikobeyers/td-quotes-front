@@ -272,26 +272,86 @@
         }
     }
 
-    .create-fab {
+    .create-fab-cluster {
         position: fixed;
         right: max(24px, calc((100vw - min(900px, 100vw)) / 2 + 24px));
         bottom: 24px;
         z-index: 30;
-        width: 56px;
-        height: 56px;
-        border-radius: 16px;
-        border: 1px solid #c9d3e2;
-        background: linear-gradient(180deg, #eef3fa 0%, #dfe8f5 100%);
-        color: #1f2f44;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 10px 26px rgba(17, 27, 41, 0.22);
+        width: 172px;
+        height: 172px;
+        pointer-events: none;
 
-        mat-icon {
-            font-size: 30px;
-            width: 30px;
-            height: 30px;
+        .create-fab {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            border: 1px solid #c9d3e2;
+            background: linear-gradient(180deg, #eef3fa 0%, #dfe8f5 100%);
+            color: #1f2f44;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 26px rgba(17, 27, 41, 0.22);
+            pointer-events: auto;
+            transform-origin: center center;
+            transition:
+                transform 180ms ease-out,
+                opacity 180ms ease-out,
+                box-shadow 180ms ease-out;
+            opacity: 0;
+            transform: translate(0, 0) scale(0.35);
+
+            mat-icon {
+                font-size: 30px;
+                width: 30px;
+                height: 30px;
+            }
+
+            &:not(:disabled) {
+                cursor: pointer;
+            }
+
+            &:not(:disabled):hover {
+                box-shadow: 0 12px 28px rgba(17, 27, 41, 0.26);
+            }
+
+            &:focus-visible {
+                outline: 2px solid #b7c2d3;
+                outline-offset: 2px;
+            }
+
+            &.open {
+                opacity: 1;
+            }
+        }
+
+        .create-fab--game {
+            z-index: 31;
+        }
+
+        .create-fab--game.open {
+            transform: translate(-72px, 0) scale(1);
+        }
+
+        .create-fab--create {
+            z-index: 32;
+        }
+
+        .create-fab--create.open {
+            transform: translate(0, -72px) scale(1);
+        }
+
+        .create-fab--toggle {
+            z-index: 33;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .create-fab--toggle.open {
+            transform: rotate(45deg) scale(1.04);
         }
     }
 }
