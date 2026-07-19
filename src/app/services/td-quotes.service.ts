@@ -78,6 +78,26 @@ export class TdQuotesService {
     );
   }
 
+  public uploadAuthorProfilePicture(
+    authorId: string,
+    profilePictureBase64: string,
+    profilePictureContentType: string
+  ): Observable<TdQuoteAuthorWithId> {
+    return this.http.put<TdQuoteAuthorWithId>(
+      `${BASE_URL}/tdquotes/authors/${authorId}/profile-picture`,
+      {
+        profilePictureBase64,
+        profilePictureContentType,
+      }
+    );
+  }
+
+  public getAuthorProfilePictureBlob(authorId: string): Observable<Blob> {
+    return this.http.get(`${BASE_URL}/tdquotes/authors/${authorId}/profile-picture`, {
+      responseType: 'blob',
+    });
+  }
+
   public getPushPublicKey(): Observable<{ publicKey: string }> {
     return this.http.get<{ publicKey: string }>(`${BASE_URL}/push/public-key`);
   }
@@ -95,12 +115,14 @@ export class TdQuotesService {
   public sendNewQuotePushNotification(
     title: string,
     body: string,
-    recipientAuthorIds?: string[]
+    recipientAuthorIds?: string[],
+    excludeAuthorIds?: string[]
   ): Observable<void> {
     return this.http.post<void>(`${BASE_URL}/push/broadcast`, {
       title,
       body,
       recipientAuthorIds: recipientAuthorIds?.length ? recipientAuthorIds : undefined,
+      excludeAuthorIds: excludeAuthorIds?.length ? excludeAuthorIds : undefined,
     });
   }
 
