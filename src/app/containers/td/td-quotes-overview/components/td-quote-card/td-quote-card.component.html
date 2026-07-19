@@ -29,7 +29,15 @@
     <div class="card-footer">
         <div class="quote--author-block">
             <div class="author-icon">
+                @if (authorProfilePictureSrc(); as profilePictureSrc) {
+                <img
+                    [src]="profilePictureSrc"
+                    [alt]="(tdQuote()?.by?.name || 'Author') + ' profile picture'"
+                    (error)="onAuthorProfilePictureError(tdQuote()?.by?._id, profilePictureSrc)"
+                />
+                } @else {
                 <span class="material-icons">person_outline</span>
+                }
             </div>
             <div class="author-meta">
                 <span class="quote--by">{{ tdQuote()?.by?.name }}</span>

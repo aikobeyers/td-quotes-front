@@ -85,6 +85,10 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly secretTapThresholdMs = 200;
   private readonly secretTapTarget = 5;
   private readonly syntheticClickWindowMs = 500;
+  private readonly maxProfilePictureBytes = 1024 * 1024;
+  private selectedProfilePictureFile = signal<File | null>(null);
+  private readonly profilePictureRequestsInFlight = new Set<string>();
+  private readonly profilePictureDataUrlsByAuthorId = signal<Record<string, string>>({});
   private brandTapCount = 0;
   private lastBrandTapTime = 0;
   private lastTouchTapTime = 0;
@@ -124,9 +128,14 @@ export class TdQuotesOverviewComponent implements OnInit {
   ];
   public secretNotificationTitle = '';
   public secretNotificationBody = '';
-  public secretModalTab = signal<'notification' | 'user'>('notification');
+  public secretModalTab = signal<'notification' | 'user' | 'picture'>('notification');
   public secretNotificationAudience = signal<'all' | 'selected'>('all');
   public secretRecipientAuthorIds = signal<string[]>([]);
+  public selectedProfilePictureAuthorId = signal('');
+  public selectedProfilePictureFileName = signal('');
+  public profilePictureResetToken = signal(0);
+  public profilePictureUploadError = signal('');
+  public isUploadingProfilePicture = signal(false);
   public activeAuthor = computed(() => {
     const activeUser = this.activeUser();
     if (!activeUser) {
@@ -330,6 +339,13 @@ export class TdQuotesOverviewComponent implements OnInit {
   public targetableRecipientAuthors = computed(() => {
     return this.authors().filter((author) => this.isObjectId(author._id));
   });
+  public canUploadProfilePicture = computed(() => {
+    return (
+      this.isObjectId(this.selectedProfilePictureAuthorId()) &&
+      this.selectedProfilePictureFile() !== null &&
+      !this.isUploadingProfilePicture()
+    );
+  });
 
   public ngOnInit(): void {
     this.titleService.setTitle('TD Quotes');
@@ -363,7 +379,10 @@ export class TdQuotesOverviewComponent implements OnInit {
       .pipe(take(1))
       .subscribe({
         next: (authors) => {
-          this.store.setAuthors(authors);
+          const mergedAuthors = this.mergeCachedProfilePicturesIntoAuthors(authors);
+          this.store.setAuthors(mergedAuthors);
+          this.mergeAuthorMetadataIntoQuotes();
+          this.loadMissingAuthorProfilePictures(mergedAuthors);
           this.openActiveUserModalIfNeeded();
         },
         error: () => {
@@ -586,16 +605,93 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.secretModalTab.set('notification');
     this.secretNotificationAudience.set('all');
     this.secretRecipientAuthorIds.set([]);
+    this.selectedProfilePictureAuthorId.set('');
+    this.selectedProfilePictureFileName.set('');
+    this.profilePictureUploadError.set('');
+    this.isUploadingProfilePicture.set(false);
+    this.selectedProfilePictureFile.set(null);
+    this.profilePictureResetToken.update((value) => value + 1);
     this.isSecretModalOpen.set(true);
   }
 
-  public setSecretModalTab(tab: 'notification' | 'user'): void {
+  public setSecretModalTab(tab: 'notification' | 'user' | 'picture'): void {
     this.secretModalTab.set(tab);
+    this.profilePictureUploadError.set('');
   }
 
   public closeSecretModal(): void {
     this.isSecretModalOpen.set(false);
     this.isSendingSecretNotification.set(false);
+    this.isUploadingProfilePicture.set(false);
+    this.profilePictureUploadError.set('');
+  }
+
+  public setProfilePictureAuthorId(authorId: string): void {
+    this.selectedProfilePictureAuthorId.set(authorId);
+    this.profilePictureUploadError.set('');
+  }
+
+  public setProfilePictureFile(file: File | null): void {
+    this.selectedProfilePictureFile.set(file);
+    this.selectedProfilePictureFileName.set(file?.name ?? '');
+    this.profilePictureUploadError.set('');
+  }
+
+  public uploadSelectedProfilePicture(): void {
+    if (!this.canUploadProfilePicture()) {
+      return;
+    }
+
+    const authorId = this.selectedProfilePictureAuthorId();
+    const sourceFile = this.selectedProfilePictureFile();
+    if (!this.isObjectId(authorId) || !sourceFile) {
+      return;
+    }
+
+    this.isUploadingProfilePicture.set(true);
+    this.profilePictureUploadError.set('');
+
+    void this.prepareProfilePicturePayload(sourceFile)
+      .then((payload) => {
+        this.tdQuotesService
+          .uploadAuthorProfilePicture(authorId, payload.base64, payload.contentType)
+          .pipe(take(1))
+          .subscribe({
+            next: (updatedAuthor) => {
+              this.store.updateAuthor(updatedAuthor);
+              this.store.setQuotes(
+                this.quotes().map((quote) => {
+                  if (quote.by._id !== updatedAuthor._id) {
+                    return quote;
+                  }
+
+                  return {
+                    ...quote,
+                    by: {
+                      ...quote.by,
+                      ...updatedAuthor,
+                    },
+                  };
+                })
+              );
+              this.loadMissingAuthorProfilePictures([updatedAuthor]);
+              this.selectedProfilePictureAuthorId.set('');
+              this.selectedProfilePictureFileName.set('');
+              this.selectedProfilePictureFile.set(null);
+              this.profilePictureResetToken.update((value) => value + 1);
+              this.isUploadingProfilePicture.set(false);
+            },
+            error: () => {
+              this.profilePictureUploadError.set('Could not upload image right now. Please try again.');
+              this.isUploadingProfilePicture.set(false);
+            },
+          });
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Could not process the selected image.';
+        this.profilePictureUploadError.set(message);
+        this.isUploadingProfilePicture.set(false);
+      });
   }
 
   public canSendSecretNotification(): boolean {
@@ -701,6 +797,7 @@ export class TdQuotesOverviewComponent implements OnInit {
       .subscribe({
         next: (quotes) => {
           this.store.setQuotes(quotes);
+          this.mergeAuthorMetadataIntoQuotes();
 
           if (this.sortMode() === 'random') {
             this.refreshRandomOrder(quotes);
@@ -854,6 +951,226 @@ export class TdQuotesOverviewComponent implements OnInit {
     return /^[a-f\d]{24}$/i.test(value.trim());
   }
 
+  private mergeAuthorMetadataIntoQuotes(): void {
+    const authorsById = new Map(
+      this.authors().map((author) => [author._id, author])
+    );
+
+    this.store.setQuotes(
+      this.quotes().map((quote) => {
+        const enrichedAuthor = authorsById.get(quote.by._id);
+        if (!enrichedAuthor) {
+          return quote;
+        }
+
+        return {
+          ...quote,
+          by: {
+            ...quote.by,
+            ...enrichedAuthor,
+          },
+        };
+      })
+    );
+  }
+
+  private mergeCachedProfilePicturesIntoAuthors(
+    authors: TdQuoteAuthorWithId[]
+  ): TdQuoteAuthorWithId[] {
+    const cachedDataUrls = this.profilePictureDataUrlsByAuthorId();
+
+    return authors.map((author) => {
+      const dataUrl = cachedDataUrls[author._id];
+      if (!dataUrl) {
+        return author;
+      }
+
+      return {
+        ...author,
+        profilePictureDataUrl: dataUrl,
+      };
+    });
+  }
+
+  private loadMissingAuthorProfilePictures(authors: TdQuoteAuthorWithId[]): void {
+    const cachedDataUrls = this.profilePictureDataUrlsByAuthorId();
+
+    for (const author of authors) {
+      if (!author.hasProfilePicture || !this.isObjectId(author._id)) {
+        continue;
+      }
+
+      if (cachedDataUrls[author._id] || this.profilePictureRequestsInFlight.has(author._id)) {
+        continue;
+      }
+
+      this.profilePictureRequestsInFlight.add(author._id);
+      this.tdQuotesService
+        .getAuthorProfilePictureBlob(author._id)
+        .pipe(take(1))
+        .subscribe({
+          next: (blob) => {
+            void this.resolveProfilePictureDataUrl(blob)
+              .then((dataUrl) => {
+                this.profilePictureDataUrlsByAuthorId.update((current) => ({
+                  ...current,
+                  [author._id]: dataUrl,
+                }));
+
+                this.store.setAuthors(
+                  this.authors().map((existingAuthor) => {
+                    if (existingAuthor._id !== author._id) {
+                      return existingAuthor;
+                    }
+
+                    return {
+                      ...existingAuthor,
+                      profilePictureDataUrl: dataUrl,
+                    };
+                  })
+                );
+
+                this.store.setQuotes(
+                  this.quotes().map((quote) => {
+                    if (quote.by._id !== author._id) {
+                      return quote;
+                    }
+
+                    return {
+                      ...quote,
+                      by: {
+                        ...quote.by,
+                        profilePictureDataUrl: dataUrl,
+                      },
+                    };
+                  })
+                );
+              })
+              .finally(() => {
+                this.profilePictureRequestsInFlight.delete(author._id);
+              });
+          },
+          error: () => {
+            this.profilePictureRequestsInFlight.delete(author._id);
+          },
+        });
+    }
+  }
+
+  private async resolveProfilePictureDataUrl(blob: Blob): Promise<string> {
+    if (blob.type.startsWith('image/')) {
+      return this.blobToDataUrl(blob);
+    }
+
+    const payloadText = await blob.text();
+    const payload = this.tryParseJson(payloadText);
+    const resolvedFromPayload = this.resolveProfilePictureDataUrlFromPayload(payload);
+
+    if (resolvedFromPayload) {
+      return resolvedFromPayload;
+    }
+
+    throw new Error('Unsupported profile picture response format.');
+  }
+
+  private tryParseJson(value: string): unknown {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  private resolveProfilePictureDataUrlFromPayload(payload: unknown): string | null {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const candidate = payload as {
+      profilePictureDataUrl?: unknown;
+      profilePictureUrl?: unknown;
+      profilePictureBase64?: unknown;
+      dataBase64?: unknown;
+      profilePictureContentType?: unknown;
+      profilePicture?: unknown;
+      contentType?: unknown;
+      base64?: unknown;
+    };
+
+    if (
+      typeof candidate.profilePictureDataUrl === 'string' &&
+      candidate.profilePictureDataUrl.trim().length > 0
+    ) {
+      return candidate.profilePictureDataUrl;
+    }
+
+    if (
+      typeof candidate.profilePictureUrl === 'string' &&
+      candidate.profilePictureUrl.trim().length > 0
+    ) {
+      return candidate.profilePictureUrl;
+    }
+
+    const base64Payload =
+      typeof candidate.profilePictureBase64 === 'string' &&
+      candidate.profilePictureBase64.trim().length > 0
+        ? candidate.profilePictureBase64
+        : typeof candidate.dataBase64 === 'string' && candidate.dataBase64.trim().length > 0
+          ? candidate.dataBase64
+        : typeof candidate.base64 === 'string' && candidate.base64.trim().length > 0
+          ? candidate.base64
+          : null;
+
+    const contentType =
+      typeof candidate.profilePictureContentType === 'string' &&
+      candidate.profilePictureContentType.trim().length > 0
+        ? candidate.profilePictureContentType
+        : typeof candidate.contentType === 'string' && candidate.contentType.trim().length > 0
+          ? candidate.contentType
+          : 'image/jpeg';
+
+    if (base64Payload) {
+      return `data:${contentType};base64,${base64Payload}`;
+    }
+
+    const bufferBase64 = this.extractBase64FromSerializedBuffer(candidate.profilePicture);
+    if (bufferBase64) {
+      return `data:${contentType};base64,${bufferBase64}`;
+    }
+
+    return null;
+  }
+
+  private extractBase64FromSerializedBuffer(value: unknown): string | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const maybeBuffer = value as { type?: unknown; data?: unknown };
+    if (maybeBuffer.type !== 'Buffer' || !Array.isArray(maybeBuffer.data)) {
+      return null;
+    }
+
+    const bytes = maybeBuffer.data;
+    if (!bytes.every((item) => typeof item === 'number' && Number.isInteger(item) && item >= 0 && item <= 255)) {
+      return null;
+    }
+
+    return this.uint8ArrayToBase64(new Uint8Array(bytes));
+  }
+
+  private uint8ArrayToBase64(bytes: Uint8Array): string {
+    let binary = '';
+    const chunkSize = 0x8000;
+
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+      const chunk = bytes.subarray(index, index + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+
+    return btoa(binary);
+  }
+
   public createQuote(quoteData: {
     value: string;
     date: string;
@@ -930,6 +1247,132 @@ export class TdQuotesOverviewComponent implements OnInit {
 
     const randomIndex = Math.floor(Math.random() * validOptions.length);
     return validOptions[randomIndex];
+  }
+
+  private async prepareProfilePicturePayload(file: File): Promise<{ base64: string; contentType: string }> {
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Please select an image file.');
+    }
+
+    if (file.size <= this.maxProfilePictureBytes) {
+      return this.fileToBase64Payload(file);
+    }
+
+    return this.compressImageToMaxSize(file, this.maxProfilePictureBytes);
+  }
+
+  private async fileToBase64Payload(file: Blob): Promise<{ base64: string; contentType: string }> {
+    const dataUrl = await this.blobToDataUrl(file);
+    const payloadMatch = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
+    if (!payloadMatch) {
+      throw new Error('Unsupported image format. Please try another file.');
+    }
+
+    const contentType = payloadMatch[1];
+    const base64 = payloadMatch[2];
+    const byteSize = this.base64ByteLength(base64);
+    if (byteSize > this.maxProfilePictureBytes) {
+      throw new Error('Image is still above 1MB after processing. Please choose a smaller image.');
+    }
+
+    return { base64, contentType };
+  }
+
+  private async compressImageToMaxSize(
+    file: File,
+    maxBytes: number,
+  ): Promise<{ base64: string; contentType: string }> {
+    const image = await this.loadImageElement(file);
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      throw new Error('Could not initialize image processing.');
+    }
+
+    const targetTypes = Array.from(
+      new Set([
+        file.type.startsWith('image/') ? file.type : 'image/jpeg',
+        'image/jpeg',
+        'image/webp',
+      ])
+    );
+    const scales = [1, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52, 0.44, 0.36];
+    const qualities = [0.92, 0.84, 0.76, 0.68, 0.6, 0.52, 0.44, 0.36];
+
+    for (const scale of scales) {
+      const width = Math.max(1, Math.round(image.naturalWidth * scale));
+      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+      canvas.width = width;
+      canvas.height = height;
+      context.clearRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+
+      for (const contentType of targetTypes) {
+        if (contentType === 'image/png') {
+          const pngBlob = await this.canvasToBlob(canvas, contentType);
+          if (pngBlob.size <= maxBytes) {
+            return this.fileToBase64Payload(pngBlob);
+          }
+          continue;
+        }
+
+        for (const quality of qualities) {
+          const candidateBlob = await this.canvasToBlob(canvas, contentType, quality);
+          if (candidateBlob.size <= maxBytes) {
+            return this.fileToBase64Payload(candidateBlob);
+          }
+        }
+      }
+    }
+
+    throw new Error('Could not compress image below 1MB. Please choose a smaller image.');
+  }
+
+  private loadImageElement(file: File): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+      fileReader.onerror = () => reject(new Error('Could not read image file.'));
+      fileReader.onload = () => {
+        const image = new Image();
+        image.onerror = () => reject(new Error('Could not load image for compression.'));
+        image.onload = () => resolve(image);
+        image.src = String(fileReader.result || '');
+      };
+      fileReader.readAsDataURL(file);
+    });
+  }
+
+  private canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Image compression failed.'));
+            return;
+          }
+          resolve(blob);
+        },
+        type,
+        quality,
+      );
+    });
+  }
+
+  private blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+      fileReader.onerror = () => reject(new Error('Could not convert image to upload format.'));
+      fileReader.onload = () => resolve(String(fileReader.result || ''));
+      fileReader.readAsDataURL(blob);
+    });
+  }
+
+  private base64ByteLength(base64: string): number {
+    const normalized = base64.replace(/\s+/g, '');
+    const paddingLength = normalized.endsWith('==') ? 2 : normalized.endsWith('=') ? 1 : 0;
+    return (normalized.length * 3) / 4 - paddingLength;
   }
 
   private parseDateForSort(dateValue: string | null | undefined): {
