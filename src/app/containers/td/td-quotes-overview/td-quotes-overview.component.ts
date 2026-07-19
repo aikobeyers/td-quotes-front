@@ -85,7 +85,9 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly secretTapThresholdMs = 200;
   private readonly secretTapTarget = 5;
   private readonly syntheticClickWindowMs = 500;
+  private readonly filtersToggleDeltaPx = 10;
   private readonly maxProfilePictureBytes = 1024 * 1024;
+  private lastOverviewScrollTop = 0;
   private selectedProfilePictureFile = signal<File | null>(null);
   private readonly profilePictureRequestsInFlight = new Set<string>();
   private readonly profilePictureDataUrlsByAuthorId = signal<Record<string, string>>({});
@@ -99,6 +101,7 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
+  public isFiltersRowVisible = signal(true);
   public isActiveUserModalOpen = signal(false);
   public isSavingActiveUser = signal(false);
   public activeUserSaveError = signal('');
@@ -509,7 +512,20 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public onScroll(event: Event): void {
     const target = event.target as HTMLElement;
-    this.hasScrolled.set(target.scrollTop > 0);
+    const nextScrollTop = Math.max(target.scrollTop, 0);
+    const delta = nextScrollTop - this.lastOverviewScrollTop;
+
+    this.hasScrolled.set(nextScrollTop > 0);
+
+    if (nextScrollTop <= this.filtersToggleDeltaPx) {
+      this.isFiltersRowVisible.set(true);
+    } else if (delta > this.filtersToggleDeltaPx) {
+      this.isFiltersRowVisible.set(false);
+    } else if (delta < -this.filtersToggleDeltaPx) {
+      this.isFiltersRowVisible.set(true);
+    }
+
+    this.lastOverviewScrollTop = nextScrollTop;
   }
 
   public openFilters(): void {
