@@ -95,12 +95,14 @@ export class TdQuotesService {
   public sendNewQuotePushNotification(
     title: string,
     body: string,
-    recipientAuthorIds?: string[]
+    recipientAuthorIds?: string[],
+    excludeAuthorIds?: string[]
   ): Observable<void> {
     return this.http.post<void>(`${BASE_URL}/push/broadcast`, {
       title,
       body,
       recipientAuthorIds: recipientAuthorIds?.length ? recipientAuthorIds : undefined,
+      excludeAuthorIds: excludeAuthorIds?.length ? excludeAuthorIds : undefined,
     });
   }
 

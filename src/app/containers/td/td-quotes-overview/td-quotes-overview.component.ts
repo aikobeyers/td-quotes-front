@@ -16,7 +16,7 @@ import { TdQuoteCardComponent } from './components/td-quote-card/td-quote-card.c
 import { CommonModule } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FiltersStore, QuoteSort } from '../../../stores/filters.store';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -80,6 +80,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly pushNotificationsService = inject(PushNotificationsService);
   private readonly titleService = inject(Title);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly store = inject(FiltersStore);
   private readonly secretTapThresholdMs = 200;
   private readonly secretTapTarget = 5;
@@ -334,10 +335,27 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.titleService.setTitle('TD Quotes');
 
     const sortHint = this.route.snapshot.queryParamMap.get('sort');
-    if (sortHint === 'recent' || sortHint === 'desc') {
+    const scopeHint = this.route.snapshot.queryParamMap.get('scope');
+    const shouldForceRecentNewest =
+      scopeHint === 'recent' ||
+      sortHint === 'recent' ||
+      sortHint === 'desc';
+
+    if (shouldForceRecentNewest) {
       this.store.resetFilters();
+      this.store.setScope('recent');
       this.store.setSort('desc');
       this.appliedFilters.set(this.takeAppliedFiltersSnapshot());
+
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {
+          scope: null,
+          sort: null,
+        },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
     }
 
     this.tdQuotesService
@@ -851,10 +869,14 @@ export class TdQuotesOverviewComponent implements OnInit {
           this.store.addAuthor(res.by);
         }
 
+        const creatorAuthorId = this.isObjectId(res.by._id) ? res.by._id : undefined;
+
         this.tdQuotesService
           .sendNewQuotePushNotification(
             this.pickRandomNotificationCopy(this.notifTitles, 'Very important notification'),
-            this.pickRandomNotificationCopy(this.notifBodies, 'Someone added a new quote!')
+            this.pickRandomNotificationCopy(this.notifBodies, 'Someone added a new quote!'),
+            undefined,
+            creatorAuthorId ? [creatorAuthorId] : undefined
           )
           .pipe(take(1))
           .subscribe({
