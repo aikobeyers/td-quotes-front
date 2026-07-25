@@ -22,7 +22,17 @@ export class TdQuoteCardComponent {
   public isSkeleton = input<boolean>(false);
   public isFavorite = input<boolean>(false);
   public favoriteToggled = output<string>();
+  public editRequested = output<string>();
+  public historyRequested = output<string>();
   private readonly authorImageLoadFailures = signal<Record<string, string>>({});
+  public hasVersionHistory = computed(() => {
+    const quote = this.tdQuote();
+    if (!quote) {
+      return false;
+    }
+
+    return Boolean(quote.hasVersionHistory);
+  });
   public authorProfilePictureSrc = computed(() => {
     const author = this.tdQuote()?.by;
     const src = this.resolveAuthorProfilePictureSrc(author);
@@ -44,6 +54,24 @@ export class TdQuoteCardComponent {
     if (quoteId) {
       this.favoriteToggled.emit(quoteId);
     }
+  }
+
+  public requestEdit(): void {
+    const quoteId = this.tdQuote()?._id;
+    if (!quoteId) {
+      return;
+    }
+
+    this.editRequested.emit(quoteId);
+  }
+
+  public requestHistory(): void {
+    const quoteId = this.tdQuote()?._id;
+    if (!quoteId) {
+      return;
+    }
+
+    this.historyRequested.emit(quoteId);
   }
 
   public onAuthorProfilePictureError(authorId?: string, src?: string): void {

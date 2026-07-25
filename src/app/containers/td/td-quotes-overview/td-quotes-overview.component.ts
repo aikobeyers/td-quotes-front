@@ -23,13 +23,25 @@ import { FormsModule } from '@angular/forms';
 import { TdQuoteFiltersComponent } from '../td-quote-filters/td-quote-filters.component';
 import { take } from 'rxjs';
 import { TdQuoteCreateComponent } from '../td-quote-create/td-quote-create.component';
-import { TdQuoteWithId } from '../../../models/TdQuote';
+import { TdQuoteHistoryRecord, TdQuoteWithId } from '../../../models/TdQuote';
 import { TdQuoteAuthorWithId } from '../../../models/TdQuoteAuthor';
 import { TdQuoteGameComponent } from '../td-quote-game/td-quote-game.component';
 import { TdQuotesLeaderboardComponent } from '../td-quotes-leaderboard/td-quotes-leaderboard.component';
 import { PwaInstallService } from '../../../services/pwa-install';
 import { TdActiveUserModalComponent } from './components/active-user-modal/td-active-user-modal.component';
 import { TdSecretModalComponent } from './components/secret-modal/td-secret-modal.component';
+
+type QuoteHistoryEntry = {
+  id: string;
+  changedAt: string;
+  changedByName: string;
+  valueBefore: string | null;
+  valueAfter: string | null;
+  speakerBefore: string | null;
+  speakerAfter: string | null;
+  valueChanged: boolean;
+  speakerChanged: boolean;
+};
 
 @Component({
   selector: 'app-td-quotes-overview',
@@ -109,6 +121,17 @@ export class TdQuotesOverviewComponent implements OnInit {
   public isQuickFabOpen = signal(false);
   public isSecretModalOpen = signal(false);
   public isSendingSecretNotification = signal(false);
+  public isEditQuoteModalOpen = signal(false);
+  public isUpdatingQuote = signal(false);
+  public quoteUpdateError = signal('');
+  public editingQuoteId = signal('');
+  public editQuoteValue = '';
+  public editQuoteAuthorId = '';
+  public isQuoteHistoryModalOpen = signal(false);
+  public isLoadingQuoteHistory = signal(false);
+  public quoteHistoryError = signal('');
+  public selectedQuoteForHistory = signal<TdQuoteWithId | null>(null);
+  public selectedQuoteHistoryRecords = signal<TdQuoteHistoryRecord[]>([]);
   public sortMode = this.store.sort;
   public randomOrderRank = signal<Record<string, number>>({});
   public activeUser = signal<{ id: string; name: string } | null>(
@@ -347,6 +370,12 @@ export class TdQuotesOverviewComponent implements OnInit {
       this.isObjectId(this.selectedProfilePictureAuthorId()) &&
       this.selectedProfilePictureFile() !== null &&
       !this.isUploadingProfilePicture()
+    );
+  });
+  public quoteHistoryEntries = computed(() => {
+    return this.buildQuoteHistoryEntries(
+      this.selectedQuoteForHistory(),
+      this.selectedQuoteHistoryRecords(),
     );
   });
 
@@ -853,6 +882,142 @@ export class TdQuotesOverviewComponent implements OnInit {
         // No-op so UI remains responsive when favorite mutation fails.
       },
     });
+  }
+
+  public openEditQuoteModal(quoteId: string): void {
+    const quote = this.quotes().find((item) => item._id === quoteId);
+    if (!quote) {
+      return;
+    }
+
+    this.editingQuoteId.set(quote._id);
+    this.editQuoteValue = quote.value;
+    this.editQuoteAuthorId = quote.by?._id ?? '';
+    this.quoteUpdateError.set('');
+    this.isUpdatingQuote.set(false);
+    this.isEditQuoteModalOpen.set(true);
+  }
+
+  public closeEditQuoteModal(): void {
+    this.isEditQuoteModalOpen.set(false);
+    this.isUpdatingQuote.set(false);
+    this.quoteUpdateError.set('');
+    this.editingQuoteId.set('');
+    this.editQuoteValue = '';
+    this.editQuoteAuthorId = '';
+  }
+
+  public canSaveQuoteEdit(): boolean {
+    return (
+      this.editingQuoteId().trim().length > 0 &&
+      this.editQuoteValue.trim().length > 0 &&
+      this.isObjectId(this.editQuoteAuthorId) &&
+      !this.isUpdatingQuote()
+    );
+  }
+
+  public saveQuoteEdit(): void {
+    if (!this.canSaveQuoteEdit()) {
+      return;
+    }
+
+    const activeUser = this.activeUser();
+    if (!activeUser || !this.isObjectId(activeUser.id)) {
+      this.quoteUpdateError.set('Please select an active user before editing quotes.');
+      return;
+    }
+
+    const quoteId = this.editingQuoteId();
+    const existingQuote = this.quotes().find((quote) => quote._id === quoteId);
+    const nextValue = this.editQuoteValue.trim();
+    const nextAuthorId = this.editQuoteAuthorId.trim();
+
+    if (!this.isObjectId(nextAuthorId)) {
+      this.quoteUpdateError.set('Please select a valid author.');
+      return;
+    }
+
+    if (existingQuote && existingQuote.value === nextValue && existingQuote.by?._id === nextAuthorId) {
+      this.quoteUpdateError.set('No changes detected.');
+      return;
+    }
+
+    this.isUpdatingQuote.set(true);
+    this.quoteUpdateError.set('');
+
+    this.tdQuotesService
+      .updateQuote(quoteId, {
+        value: nextValue,
+        by: nextAuthorId,
+        changedByAuthorId: activeUser.id,
+      })
+      .pipe(take(1))
+      .subscribe({
+        next: (updatedQuote) => {
+          this.replaceQuoteInStore(updatedQuote);
+          this.isUpdatingQuote.set(false);
+          this.closeEditQuoteModal();
+        },
+        error: (error: { error?: { message?: string } }) => {
+          this.isUpdatingQuote.set(false);
+          const message =
+            typeof error?.error?.message === 'string' && error.error.message.trim().length > 0
+              ? error.error.message
+              : 'Could not update quote right now. Please try again.';
+          this.quoteUpdateError.set(message);
+        },
+      });
+  }
+
+  public openQuoteHistoryModal(quoteId: string): void {
+    const quote = this.quotes().find((item) => item._id === quoteId);
+    if (!quote) {
+      return;
+    }
+
+    this.isQuoteHistoryModalOpen.set(true);
+    this.isLoadingQuoteHistory.set(true);
+    this.quoteHistoryError.set('');
+    this.selectedQuoteForHistory.set(quote);
+    this.selectedQuoteHistoryRecords.set([]);
+
+    this.tdQuotesService
+      .getQuoteHistory(quoteId)
+      .pipe(take(1))
+      .subscribe({
+        next: (historyResponse) => {
+          const records = historyResponse.history.map((record) =>
+            this.resolveHistoryRecordWithKnownAuthors(record)
+          );
+          this.selectedQuoteHistoryRecords.set(records);
+          this.isLoadingQuoteHistory.set(false);
+        },
+        error: (error: { error?: { message?: string } }) => {
+          this.isLoadingQuoteHistory.set(false);
+          const message =
+            typeof error?.error?.message === 'string' && error.error.message.trim().length > 0
+              ? error.error.message
+              : 'Could not load quote history right now. Please try again.';
+          this.quoteHistoryError.set(message);
+        },
+      });
+  }
+
+  public closeQuoteHistoryModal(): void {
+    this.isQuoteHistoryModalOpen.set(false);
+    this.isLoadingQuoteHistory.set(false);
+    this.quoteHistoryError.set('');
+    this.selectedQuoteForHistory.set(null);
+    this.selectedQuoteHistoryRecords.set([]);
+  }
+
+  public formatHistoryTimestamp(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleString();
   }
 
   private openActiveUserModalIfNeeded(): void {
@@ -1449,5 +1614,120 @@ export class TdQuotesOverviewComponent implements OnInit {
     });
 
     this.randomOrderRank.set(rank);
+  }
+
+  private replaceQuoteInStore(updatedQuote: TdQuoteWithId): void {
+    const resolvedQuote = this.resolveQuoteWithKnownAuthors(updatedQuote);
+
+    this.store.setQuotes(
+      this.quotes().map((quote) => {
+        if (quote._id !== resolvedQuote._id) {
+          return quote;
+        }
+
+        return resolvedQuote;
+      })
+    );
+
+    const selectedQuote = this.selectedQuoteForHistory();
+    if (selectedQuote?._id === resolvedQuote._id) {
+      this.selectedQuoteForHistory.set(resolvedQuote);
+    }
+  }
+
+  private resolveQuoteWithKnownAuthors(quote: TdQuoteWithId): TdQuoteWithId {
+    const knownAuthorsById = new Map(
+      this.authors().map((author) => [author._id, author])
+    );
+
+    const mergeAuthor = (
+      author: TdQuoteAuthorWithId | null | undefined,
+    ): TdQuoteAuthorWithId | null | undefined => {
+      if (!author) {
+        return author;
+      }
+
+      const knownAuthor = knownAuthorsById.get(author._id);
+      if (!knownAuthor) {
+        return author;
+      }
+
+      return {
+        ...author,
+        ...knownAuthor,
+        profilePictureDataUrl: author.profilePictureDataUrl ?? knownAuthor.profilePictureDataUrl,
+      };
+    };
+
+    return {
+      ...quote,
+      by: mergeAuthor(quote.by) ?? quote.by,
+    };
+  }
+
+  private resolveHistoryRecordWithKnownAuthors(record: TdQuoteHistoryRecord): TdQuoteHistoryRecord {
+    const knownAuthorsById = new Map(
+      this.authors().map((author) => [author._id, author])
+    );
+
+    const recordAuthor = knownAuthorsById.get(record.by._id);
+    const changedByAuthor = knownAuthorsById.get(record.changedBy._id);
+
+    return {
+      ...record,
+      by: recordAuthor
+        ? { ...record.by, ...recordAuthor }
+        : record.by,
+      changedBy: changedByAuthor
+        ? { ...record.changedBy, ...changedByAuthor }
+        : record.changedBy,
+    };
+  }
+
+  private buildQuoteHistoryEntries(
+    quote: TdQuoteWithId | null,
+    historyRecords: TdQuoteHistoryRecord[],
+  ): QuoteHistoryEntry[] {
+    if (!quote || historyRecords.length === 0) {
+      return [];
+    }
+
+    const historyEntries: QuoteHistoryEntry[] = [];
+
+    for (let index = 0; index < historyRecords.length; index += 1) {
+      const snapshotBefore = historyRecords[index];
+      const snapshotAfter = index === 0
+        ? quote
+        : historyRecords[index - 1];
+
+      const valueChanged = snapshotBefore.value !== snapshotAfter.value;
+      const speakerBefore = this.getSpeakerName(snapshotBefore.by);
+      const speakerAfter = this.getSpeakerName(snapshotAfter.by);
+      const speakerChanged = Boolean(
+        speakerBefore && speakerAfter && speakerBefore !== speakerAfter,
+      );
+
+      historyEntries.push({
+        id: snapshotBefore._id,
+        changedAt: snapshotBefore.changedAt,
+        changedByName: this.getSpeakerName(snapshotBefore.changedBy) ?? 'Unknown editor',
+        valueBefore: valueChanged ? snapshotBefore.value : null,
+        valueAfter: valueChanged ? snapshotAfter.value : null,
+        speakerBefore: speakerChanged ? speakerBefore : null,
+        speakerAfter: speakerChanged ? speakerAfter : null,
+        valueChanged,
+        speakerChanged,
+      });
+    }
+
+    return historyEntries;
+  }
+
+  private getSpeakerName(speaker: TdQuoteAuthorWithId | null | undefined): string | null {
+    if (!speaker || typeof speaker.name !== 'string' || speaker.name.trim().length === 0) {
+      return null;
+    }
+
+    return speaker.name.trim();
   }
 }

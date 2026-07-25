@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { TdQuoteWithId } from '../models/TdQuote';
+import { TdQuoteHistoryResponse, TdQuoteWithId } from '../models/TdQuote';
 import { TdQuoteAuthorWithId } from '../models/TdQuoteAuthor';
 import { FiltersStore } from '../stores/filters.store';
 import { Observable, of } from 'rxjs';
@@ -55,6 +55,21 @@ export class TdQuotesService {
 
   public createQuote(req: {value: string, date: string, by: string | undefined | null, newAuthor: string| undefined | null}): Observable<TdQuoteWithId> {
     return this.http.post<TdQuoteWithId>(`${BASE_URL}/tdquotes/create`, req);
+  }
+
+  public getQuoteHistory(quoteId: string): Observable<TdQuoteHistoryResponse> {
+    return this.http.get<TdQuoteHistoryResponse>(`${BASE_URL}/tdquotes/${quoteId}/history`);
+  }
+
+  public updateQuote(
+    quoteId: string,
+    req: {
+      changedByAuthorId: string;
+      value?: string;
+      by?: string;
+    },
+  ): Observable<TdQuoteWithId> {
+    return this.http.patch<TdQuoteWithId>(`${BASE_URL}/tdquotes/${quoteId}`, req);
   }
 
   public getRandomQuote(): Observable<TdQuoteWithId> {

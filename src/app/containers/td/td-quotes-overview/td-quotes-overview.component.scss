@@ -795,6 +795,211 @@
     }
 }
 
+.quote-edit-modal--backdrop,
+.quote-history-modal--backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2350;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background-color: rgba(16, 18, 25, 0.45);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+
+    &.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+.quote-edit-modal--box,
+.quote-history-modal--box {
+    width: min(640px, calc(100vw - 32px));
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #f8f7f5 0%, #f3f2ef 100%);
+    border: 1px solid #e3dfda;
+    border-radius: 20px;
+    box-shadow: 0 22px 56px rgba(12, 18, 30, 0.24);
+    overflow: hidden;
+}
+
+.quote-edit-modal--header,
+.quote-history-modal--header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 14px 12px 20px;
+    border-bottom: 1px solid #e6e2dd;
+}
+
+.quote-edit-modal--title,
+.quote-history-modal--title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1b1f27;
+    letter-spacing: 0.01em;
+}
+
+.quote-edit-modal--form {
+    display: grid;
+    row-gap: 10px;
+    padding: 16px 18px;
+}
+
+.quote-edit-modal--footer,
+.quote-history-modal--footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 4px 18px 16px;
+
+    .secondary-button {
+        border-radius: 12px;
+        padding: 11px 16px;
+        border: 1px solid #d1cbc3;
+        background: #f4f1eb;
+        color: #413f3a;
+        font-weight: 600;
+    }
+
+    .apply-button {
+        min-width: 132px;
+    }
+}
+
+.quote-history-modal--content {
+    padding: 16px 18px;
+    max-height: min(60dvh, 520px);
+    overflow-y: auto;
+}
+
+.quote-history-modal--status {
+    margin: 0;
+    color: #454850;
+    font-size: 14px;
+}
+
+.quote-history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    row-gap: 10px;
+}
+
+.quote-history-item {
+    border: 1px solid #e2ddd7;
+    border-radius: 14px;
+    background: rgba(251, 249, 246, 0.75);
+    padding: 12px;
+    display: grid;
+    row-gap: 8px;
+}
+
+.quote-history-item--meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    border-bottom: 1px dashed #d9d4ce;
+    padding-bottom: 8px;
+}
+
+.quote-history-item--editor,
+.quote-history-item--timestamp {
+    margin: 0;
+    color: #4a4f59;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.quote-history-item--timestamp {
+    color: #7a7780;
+    white-space: nowrap;
+}
+
+.quote-history-item--change {
+    margin: 0;
+    color: #222730;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.quote-history-diff {
+    display: grid;
+    row-gap: 6px;
+}
+
+.quote-history-diff--label {
+    margin: 0;
+    color: #66656d;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.quote-history-diff--row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.quote-history-diff--row.compact {
+    align-items: center;
+}
+
+.quote-history-diff--side {
+    border: 1px solid #ddd8d2;
+    border-radius: 10px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.55);
+    min-width: 0;
+
+    &.before {
+        border-color: #d7d3ce;
+        background: rgba(244, 240, 235, 0.8);
+    }
+
+    &.after {
+        border-color: #cfd8e6;
+        background: rgba(231, 238, 248, 0.8);
+    }
+}
+
+.quote-history-diff--side-label {
+    margin: 0 0 4px;
+    color: #67656d;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.quote-history-diff--content {
+    margin: 0;
+    color: #242933;
+    font-size: 13px;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.quote-history-diff--arrow {
+    align-self: center;
+    color: #8f8c96;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
 @media (max-width: 600px) {
     .td-quotes-overview--wrapper {
         .td-quotes-overview--header {
@@ -827,6 +1032,12 @@
         border-radius: 16px;
     }
 
+    .quote-edit-modal--box,
+    .quote-history-modal--box {
+        width: calc(100vw - 20px);
+        border-radius: 16px;
+    }
+
     .active-user-modal--box {
         width: calc(100vw - 20px);
         border-radius: 16px;
@@ -842,6 +1053,31 @@
     }
 
     .secret-modal--footer {
+        padding: 0 14px 14px;
+    }
+
+    .quote-edit-modal--form,
+    .quote-history-modal--content {
+        padding: 14px;
+    }
+
+    .quote-history-item--meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .quote-history-diff--row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .quote-history-diff--arrow {
+        justify-self: center;
+        transform: rotate(90deg);
+    }
+
+    .quote-edit-modal--footer,
+    .quote-history-modal--footer {
         padding: 0 14px 14px;
     }
 }
