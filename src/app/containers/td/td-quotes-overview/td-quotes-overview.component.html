@@ -214,6 +214,14 @@
                 [(ngModel)]="editQuoteValue"
             ></textarea>
 
+            <label class="secret-label" for="quote-edit-date">Date</label>
+            <input
+                id="quote-edit-date"
+                class="secret-input"
+                type="date"
+                [(ngModel)]="editQuoteDatePickerValue"
+            />
+
             <label class="secret-label" for="quote-edit-author">Speaker</label>
             <select
                 id="quote-edit-author"
@@ -324,7 +332,24 @@
                                 </div>
                             }
 
-                            @if (!entry.valueChanged && !entry.speakerChanged) {
+                            @if (entry.dateChanged) {
+                                <div class="quote-history-diff">
+                                    <p class="quote-history-diff--label">Date</p>
+                                    <div class="quote-history-diff--row compact">
+                                        <div class="quote-history-diff--side before">
+                                            <p class="quote-history-diff--side-label">Before</p>
+                                            <p class="quote-history-diff--content">{{ entry.dateBefore }}</p>
+                                        </div>
+                                        <mat-icon class="quote-history-diff--arrow" fontIcon="arrow_forward"></mat-icon>
+                                        <div class="quote-history-diff--side after">
+                                            <p class="quote-history-diff--side-label">After</p>
+                                            <p class="quote-history-diff--content">{{ entry.dateAfter }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!entry.valueChanged && !entry.speakerChanged && !entry.dateChanged) {
                                 <p class="quote-history-item--change">Quote metadata was updated.</p>
                             }
                         </li>
