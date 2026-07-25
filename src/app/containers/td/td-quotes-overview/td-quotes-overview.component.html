@@ -92,6 +92,8 @@
                             [tdQuote]="tdQuote"
                             [isFavorite]="isFavorite(tdQuote._id)"
                             (favoriteToggled)="toggleFavorite($event)"
+                            (editRequested)="openEditQuoteModal($event)"
+                            (historyRequested)="openQuoteHistoryModal($event)"
                         />
                     </div>
                 }
@@ -184,6 +186,158 @@
     (createUser)="createNewUser()"
     (uploadProfilePicture)="uploadSelectedProfilePicture()"
 />
+
+<div
+    class="quote-edit-modal--backdrop"
+    [class.open]="isEditQuoteModalOpen()"
+    [class.closed]="!isEditQuoteModalOpen()"
+>
+    <div class="quote-edit-modal--box" role="dialog" aria-modal="true" aria-labelledby="quote-edit-modal-title">
+        <div class="quote-edit-modal--header">
+            <h2 id="quote-edit-modal-title" class="quote-edit-modal--title">Edit Quote</h2>
+            <button
+                type="button"
+                class="secret-close-button"
+                aria-label="Close quote editor"
+                (click)="closeEditQuoteModal()"
+            >
+                <mat-icon fontIcon="close"></mat-icon>
+            </button>
+        </div>
+
+        <div class="quote-edit-modal--form">
+            <label class="secret-label" for="quote-edit-value">Quote</label>
+            <textarea
+                id="quote-edit-value"
+                class="secret-textarea"
+                rows="4"
+                [(ngModel)]="editQuoteValue"
+            ></textarea>
+
+            <label class="secret-label" for="quote-edit-author">Speaker</label>
+            <select
+                id="quote-edit-author"
+                class="secret-input"
+                [(ngModel)]="editQuoteAuthorId"
+            >
+                <option value="" disabled>Select a speaker</option>
+                @for (author of authors(); track author._id) {
+                    <option [value]="author._id">{{ author.name }}</option>
+                }
+            </select>
+
+            @if (quoteUpdateError()) {
+                <p class="active-user-modal--error" role="alert">{{ quoteUpdateError() }}</p>
+            }
+        </div>
+
+        <div class="quote-edit-modal--footer">
+            <button type="button" class="secondary-button" (click)="closeEditQuoteModal()">Cancel</button>
+            <button
+                type="button"
+                class="primary-button apply-button"
+                [disabled]="!canSaveQuoteEdit()"
+                (click)="saveQuoteEdit()"
+            >
+                @if (isUpdatingQuote()) {
+                    Saving...
+                } @else {
+                    Save Changes
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+<div
+    class="quote-history-modal--backdrop"
+    [class.open]="isQuoteHistoryModalOpen()"
+    [class.closed]="!isQuoteHistoryModalOpen()"
+>
+    <div
+        class="quote-history-modal--box"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quote-history-modal-title"
+    >
+        <div class="quote-history-modal--header">
+            <h2 id="quote-history-modal-title" class="quote-history-modal--title">Quote History</h2>
+            <button
+                type="button"
+                class="secret-close-button"
+                aria-label="Close quote history"
+                (click)="closeQuoteHistoryModal()"
+            >
+                <mat-icon fontIcon="close"></mat-icon>
+            </button>
+        </div>
+
+        <div class="quote-history-modal--content">
+            @if (isLoadingQuoteHistory()) {
+                <p class="quote-history-modal--status">Loading history...</p>
+            } @else if (quoteHistoryError()) {
+                <p class="active-user-modal--error" role="alert">{{ quoteHistoryError() }}</p>
+            } @else if (quoteHistoryEntries().length === 0) {
+                <p class="quote-history-modal--status">No version history available for this quote.</p>
+            } @else {
+                <ul class="quote-history-list">
+                    @for (entry of quoteHistoryEntries(); track entry.id) {
+                        <li class="quote-history-item">
+                            <div class="quote-history-item--meta">
+                                <p class="quote-history-item--editor">
+                                    Edited by <strong>{{ entry.changedByName }}</strong>
+                                </p>
+                                <p class="quote-history-item--timestamp">{{ formatHistoryTimestamp(entry.changedAt) }}</p>
+                            </div>
+
+                            @if (entry.valueChanged) {
+                                <div class="quote-history-diff">
+                                    <p class="quote-history-diff--label">Quote Text</p>
+                                    <div class="quote-history-diff--row">
+                                        <div class="quote-history-diff--side before">
+                                            <p class="quote-history-diff--side-label">Before</p>
+                                            <p class="quote-history-diff--content">{{ entry.valueBefore }}</p>
+                                        </div>
+                                        <mat-icon class="quote-history-diff--arrow" fontIcon="arrow_forward"></mat-icon>
+                                        <div class="quote-history-diff--side after">
+                                            <p class="quote-history-diff--side-label">After</p>
+                                            <p class="quote-history-diff--content">{{ entry.valueAfter }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (entry.speakerChanged) {
+                                <div class="quote-history-diff">
+                                    <p class="quote-history-diff--label">Speaker</p>
+                                    <div class="quote-history-diff--row compact">
+                                        <div class="quote-history-diff--side before">
+                                            <p class="quote-history-diff--side-label">Before</p>
+                                            <p class="quote-history-diff--content">{{ entry.speakerBefore }}</p>
+                                        </div>
+                                        <mat-icon class="quote-history-diff--arrow" fontIcon="arrow_forward"></mat-icon>
+                                        <div class="quote-history-diff--side after">
+                                            <p class="quote-history-diff--side-label">After</p>
+                                            <p class="quote-history-diff--content">{{ entry.speakerAfter }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!entry.valueChanged && !entry.speakerChanged) {
+                                <p class="quote-history-item--change">Quote metadata was updated.</p>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+
+        <div class="quote-history-modal--footer">
+            <button type="button" class="secondary-button" (click)="closeQuoteHistoryModal()">Close</button>
+        </div>
+    </div>
+</div>
 
 <app-td-quote-filters #filters (closeFiltersEmitter)="getQuotes($event)"></app-td-quote-filters>
 <app-td-quote-create #create (closeCreateEmitter)="getQuotes($event)"

@@ -23,6 +23,16 @@
 } @else {
 <div class="td-quote-card--container">
     <div class="quote-content">
+        @if (hasVersionHistory()) {
+            <button
+                class="quote-history-corner-button"
+                type="button"
+                aria-label="View quote history"
+                (click)="requestHistory()"
+            >
+                <span class="material-icons">history</span>
+            </button>
+        }
         <div class="quote-mark">&#8220;</div>
         <span class="quote--value">{{ tdQuote()?.value }}</span>
     </div>
@@ -46,15 +56,26 @@
                 }
             </div>
         </div>
-        <button
-            class="favorite-button"
-            [class.active]="isFavorite()"
-            type="button"
-            [attr.aria-label]="isFavorite() ? 'Remove from favorites' : 'Add to favorites'"
-            (click)="toggleFavorite()"
-        >
-            <span class="material-icons">{{ isFavorite() ? 'star' : 'star_outline' }}</span>
-        </button>
+        <div class="card-actions">
+            <button
+                class="quote-action-button"
+                type="button"
+                aria-label="Edit quote"
+                (click)="requestEdit()"
+            >
+                <span class="material-icons">edit</span>
+            </button>
+
+            <button
+                class="favorite-button"
+                [class.active]="isFavorite()"
+                type="button"
+                [attr.aria-label]="isFavorite() ? 'Remove from favorites' : 'Add to favorites'"
+                (click)="toggleFavorite()"
+            >
+                <span class="material-icons">{{ isFavorite() ? 'star' : 'star_outline' }}</span>
+            </button>
+        </div>
     </div>
 </div>
 }
