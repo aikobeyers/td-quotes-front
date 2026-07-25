@@ -66,6 +66,7 @@ export class TdQuotesService {
     req: {
       changedByAuthorId: string;
       value?: string;
+      date?: string;
       by?: string;
     },
   ): Observable<TdQuoteWithId> {

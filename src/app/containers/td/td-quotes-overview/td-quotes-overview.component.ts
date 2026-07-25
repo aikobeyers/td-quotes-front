@@ -39,8 +39,11 @@ type QuoteHistoryEntry = {
   valueAfter: string | null;
   speakerBefore: string | null;
   speakerAfter: string | null;
+  dateBefore: string | null;
+  dateAfter: string | null;
   valueChanged: boolean;
   speakerChanged: boolean;
+  dateChanged: boolean;
 };
 
 @Component({
@@ -126,6 +129,8 @@ export class TdQuotesOverviewComponent implements OnInit {
   public quoteUpdateError = signal('');
   public editingQuoteId = signal('');
   public editQuoteValue = '';
+  public editQuoteDate = '';
+  public editQuoteDatePickerValue = '';
   public editQuoteAuthorId = '';
   public isQuoteHistoryModalOpen = signal(false);
   public isLoadingQuoteHistory = signal(false);
@@ -892,6 +897,8 @@ export class TdQuotesOverviewComponent implements OnInit {
 
     this.editingQuoteId.set(quote._id);
     this.editQuoteValue = quote.value;
+    this.editQuoteDate = quote.date;
+    this.editQuoteDatePickerValue = this.toDateInputValue(quote.date);
     this.editQuoteAuthorId = quote.by?._id ?? '';
     this.quoteUpdateError.set('');
     this.isUpdatingQuote.set(false);
@@ -904,6 +911,8 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.quoteUpdateError.set('');
     this.editingQuoteId.set('');
     this.editQuoteValue = '';
+    this.editQuoteDate = '';
+    this.editQuoteDatePickerValue = '';
     this.editQuoteAuthorId = '';
   }
 
@@ -911,6 +920,7 @@ export class TdQuotesOverviewComponent implements OnInit {
     return (
       this.editingQuoteId().trim().length > 0 &&
       this.editQuoteValue.trim().length > 0 &&
+      this.editQuoteDatePickerValue.trim().length > 0 &&
       this.isObjectId(this.editQuoteAuthorId) &&
       !this.isUpdatingQuote()
     );
@@ -930,14 +940,25 @@ export class TdQuotesOverviewComponent implements OnInit {
     const quoteId = this.editingQuoteId();
     const existingQuote = this.quotes().find((quote) => quote._id === quoteId);
     const nextValue = this.editQuoteValue.trim();
+    const nextDate = this.toDisplayDateFromInput(this.editQuoteDatePickerValue);
     const nextAuthorId = this.editQuoteAuthorId.trim();
+
+    if (!nextDate) {
+      this.quoteUpdateError.set('Please choose a valid date.');
+      return;
+    }
 
     if (!this.isObjectId(nextAuthorId)) {
       this.quoteUpdateError.set('Please select a valid author.');
       return;
     }
 
-    if (existingQuote && existingQuote.value === nextValue && existingQuote.by?._id === nextAuthorId) {
+    if (
+      existingQuote &&
+      existingQuote.value === nextValue &&
+      existingQuote.date === nextDate &&
+      existingQuote.by?._id === nextAuthorId
+    ) {
       this.quoteUpdateError.set('No changes detected.');
       return;
     }
@@ -948,6 +969,7 @@ export class TdQuotesOverviewComponent implements OnInit {
     this.tdQuotesService
       .updateQuote(quoteId, {
         value: nextValue,
+        date: nextDate,
         by: nextAuthorId,
         changedByAuthorId: activeUser.id,
       })
@@ -1597,6 +1619,49 @@ export class TdQuotesOverviewComponent implements OnInit {
     };
   }
 
+  private toDateInputValue(dateValue: string | null | undefined): string {
+    const rawValue = typeof dateValue === 'string' ? dateValue.trim() : '';
+    if (!rawValue) {
+      return '';
+    }
+
+    const ddMmYyyyMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(rawValue);
+    if (ddMmYyyyMatch) {
+      const day = ddMmYyyyMatch[1];
+      const month = ddMmYyyyMatch[2];
+      const year = ddMmYyyyMatch[3];
+      return `${year}-${month}-${day}`;
+    }
+
+    const yyyyMmDdMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawValue);
+    if (yyyyMmDdMatch) {
+      return rawValue;
+    }
+
+    const parsed = new Date(rawValue);
+    if (Number.isNaN(parsed.getTime())) {
+      return '';
+    }
+
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private toDisplayDateFromInput(dateInputValue: string | null | undefined): string | null {
+    const rawValue = typeof dateInputValue === 'string' ? dateInputValue.trim() : '';
+    const yyyyMmDdMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawValue);
+    if (!yyyyMmDdMatch) {
+      return null;
+    }
+
+    const year = yyyyMmDdMatch[1];
+    const month = yyyyMmDdMatch[2];
+    const day = yyyyMmDdMatch[3];
+    return `${day}/${month}/${year}`;
+  }
+
   private refreshRandomOrder(quotesOverride?: TdQuoteWithId[]): void {
     const ids = (quotesOverride ?? this.quotes()).map((quote) => quote._id);
     const shuffledIds = [...ids];
@@ -1701,6 +1766,7 @@ export class TdQuotesOverviewComponent implements OnInit {
         : historyRecords[index - 1];
 
       const valueChanged = snapshotBefore.value !== snapshotAfter.value;
+      const dateChanged = snapshotBefore.date !== snapshotAfter.date;
       const speakerBefore = this.getSpeakerName(snapshotBefore.by);
       const speakerAfter = this.getSpeakerName(snapshotAfter.by);
       const speakerChanged = Boolean(
@@ -1715,8 +1781,11 @@ export class TdQuotesOverviewComponent implements OnInit {
         valueAfter: valueChanged ? snapshotAfter.value : null,
         speakerBefore: speakerChanged ? speakerBefore : null,
         speakerAfter: speakerChanged ? speakerAfter : null,
+        dateBefore: dateChanged ? snapshotBefore.date : null,
+        dateAfter: dateChanged ? snapshotAfter.date : null,
         valueChanged,
         speakerChanged,
+        dateChanged,
       });
     }
 
