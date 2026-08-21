@@ -43,6 +43,14 @@
                         <span class="menu-item--label">View Leaderboard</span>
                         <mat-icon class="menu-item--icon" fontIcon="emoji_events"></mat-icon>
                     </button>
+
+                    <div class="header-menu--section-label">Appearance</div>
+
+                    <button type="button" class="menu-item" role="menuitem" (click)="toggleDarkMode()">
+                        <span class="menu-item--label">Dark mode</span>
+                        <span class="menu-item--meta">{{ darkModeToggleLabel() }}</span>
+                        <mat-icon class="menu-item--icon" [fontIcon]="isDarkMode() ? 'dark_mode' : 'light_mode'"></mat-icon>
+                    </button>
                 </div>
             }
         </div>

@@ -1,5 +1,6 @@
 import {
   Component,
+  OnDestroy,
   inject,
   OnInit,
   signal,
@@ -13,7 +14,7 @@ import { TdQuotesService } from '../../../services/td-quotes.service';
 import { PushNotificationsService } from '../../../services/push-notifications.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TdQuoteCardComponent } from './components/td-quote-card/td-quote-card.component';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { MatIcon } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -46,6 +47,8 @@ type QuoteHistoryEntry = {
   dateChanged: boolean;
 };
 
+type ThemePreference = 'system' | 'light' | 'dark';
+
 @Component({
   selector: 'app-td-quotes-overview',
   providers: [Title],
@@ -65,7 +68,7 @@ type QuoteHistoryEntry = {
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './td-quotes-overview.component.scss',
 })
-export class TdQuotesOverviewComponent implements OnInit {
+export class TdQuotesOverviewComponent implements OnInit, OnDestroy {
   @ViewChild('filters')
   private filtersComponent!: TdQuoteFiltersComponent;
 
@@ -97,6 +100,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly store = inject(FiltersStore);
+  private readonly document = inject(DOCUMENT);
   private readonly secretTapThresholdMs = 200;
   private readonly secretTapTarget = 5;
   private readonly syntheticClickWindowMs = 500;
@@ -113,6 +117,15 @@ export class TdQuotesOverviewComponent implements OnInit {
 
   public quotes = this.store.quotes;
   private readonly activeUserStorageKey = 'td_quotes_active_user';
+  private readonly themeStorageKey = 'td_quotes_theme_preference';
+  private systemColorSchemeMediaQuery: MediaQueryList | null = null;
+  private readonly handleSystemColorSchemeChange = () => {
+    if (this.themePreference() !== 'system') {
+      return;
+    }
+
+    this.applyThemeToDocument();
+  };
 
   public isLoading = signal(false);
   public hasScrolled = signal(false);
@@ -142,6 +155,21 @@ export class TdQuotesOverviewComponent implements OnInit {
   public activeUser = signal<{ id: string; name: string } | null>(
     this.loadActiveUser()
   );
+  public themePreference = signal<ThemePreference>(this.loadThemePreference());
+  public isDarkMode = computed(() => {
+    const preference = this.themePreference();
+
+    if (preference === 'dark') {
+      return true;
+    }
+
+    if (preference === 'light') {
+      return false;
+    }
+
+    return Boolean(this.systemColorSchemeMediaQuery?.matches);
+  });
+  public darkModeToggleLabel = computed(() => (this.isDarkMode() ? 'On' : 'Off'));
   public selectedActiveUserId = signal('');
   public newActiveUserName = '';
   public appliedFilters = signal(this.takeAppliedFiltersSnapshot());
@@ -385,6 +413,7 @@ export class TdQuotesOverviewComponent implements OnInit {
   });
 
   public ngOnInit(): void {
+    this.initializeThemeHandling();
     this.titleService.setTitle('TD Quotes');
 
     const sortHint = this.route.snapshot.queryParamMap.get('sort');
@@ -427,6 +456,23 @@ export class TdQuotesOverviewComponent implements OnInit {
         },
       });
     this.getQuotes();
+  }
+
+  public ngOnDestroy(): void {
+    if (this.systemColorSchemeMediaQuery) {
+      this.systemColorSchemeMediaQuery.removeEventListener(
+        'change',
+        this.handleSystemColorSchemeChange,
+      );
+    }
+  }
+
+  public toggleDarkMode(): void {
+    const nextPreference: ThemePreference = this.isDarkMode() ? 'light' : 'dark';
+    this.themePreference.set(nextPreference);
+    this.persistThemePreference(nextPreference);
+    this.applyThemeToDocument();
+    this.closeHeaderMenu();
   }
 
   public selectActiveUser(author: TdQuoteAuthorWithId): void {
@@ -1380,8 +1426,14 @@ export class TdQuotesOverviewComponent implements OnInit {
     by: string | undefined | null;
     newAuthor: string | undefined | null;
   }): void {
+    const activeUser = this.activeUser();
+    const createdByAuthorId = activeUser && this.isObjectId(activeUser.id) ? activeUser.id : null;
+
     this.tdQuotesService
-      .createQuote(quoteData)
+      .createQuote({
+        ...quoteData,
+        createdByAuthorId,
+      })
       .pipe(take(1))
       .subscribe((res: TdQuoteWithId) => {
         this.store.addQuote(res);
@@ -1450,6 +1502,42 @@ export class TdQuotesOverviewComponent implements OnInit {
 
     const randomIndex = Math.floor(Math.random() * validOptions.length);
     return validOptions[randomIndex];
+  }
+
+  private initializeThemeHandling(): void {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      this.systemColorSchemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      this.systemColorSchemeMediaQuery.addEventListener('change', this.handleSystemColorSchemeChange);
+    }
+
+    this.applyThemeToDocument();
+  }
+
+  private loadThemePreference(): ThemePreference {
+    if (typeof window === 'undefined') {
+      return 'system';
+    }
+
+    const rawValue = window.localStorage.getItem(this.themeStorageKey);
+    if (rawValue === 'light' || rawValue === 'dark' || rawValue === 'system') {
+      return rawValue;
+    }
+
+    return 'system';
+  }
+
+  private persistThemePreference(preference: ThemePreference): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(this.themeStorageKey, preference);
+  }
+
+  private applyThemeToDocument(): void {
+    const resolvedTheme = this.isDarkMode() ? 'dark' : 'light';
+    this.document.documentElement.setAttribute('data-theme', resolvedTheme);
+    this.document.documentElement.style.colorScheme = resolvedTheme;
   }
 
   private async prepareProfilePicturePayload(file: File): Promise<{ base64: string; contentType: string }> {

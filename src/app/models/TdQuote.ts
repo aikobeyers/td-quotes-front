@@ -12,6 +12,7 @@ export type TdQuoteHistoryRecord = {
 
 export type TdQuote = {
     by: TdQuoteAuthorWithId;
+    createdBy?: TdQuoteAuthorWithId | null;
     value: string;
     date: string;
     hasVersionHistory?: boolean;

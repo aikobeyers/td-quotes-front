@@ -16,6 +16,9 @@ type ProfilePictureShape = {
   templateUrl: './td-quote-card.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './td-quote-card.component.scss',
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+  },
 })
 export class TdQuoteCardComponent {
   public tdQuote = input<TdQuoteWithId>();
@@ -24,6 +27,7 @@ export class TdQuoteCardComponent {
   public favoriteToggled = output<string>();
   public editRequested = output<string>();
   public historyRequested = output<string>();
+  public isCreatorInfoOpen = signal(false);
   private readonly authorImageLoadFailures = signal<Record<string, string>>({});
   public hasVersionHistory = computed(() => {
     const quote = this.tdQuote();
@@ -48,11 +52,42 @@ export class TdQuoteCardComponent {
 
     return src;
   });
+  public creatorInfoText = computed(() => {
+    const creatorName = this.tdQuote()?.createdBy?.name?.trim();
+    if (!creatorName) {
+      return 'Creator was not captured for this quote.';
+    }
+
+    return `Created by ${creatorName}`;
+  });
 
   public toggleFavorite(): void {
     const quoteId = this.tdQuote()?._id;
     if (quoteId) {
       this.favoriteToggled.emit(quoteId);
+    }
+  }
+
+  public toggleCreatorInfo(): void {
+    this.isCreatorInfoOpen.update((isOpen) => !isOpen);
+  }
+
+  public onDocumentClick(event: Event): void {
+    if (!this.isCreatorInfoOpen()) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      this.isCreatorInfoOpen.set(false);
+      return;
+    }
+
+    const clickedInsidePopover = Boolean(target.closest('.quote-creator-popover'));
+    const clickedInfoTrigger = Boolean(target.closest('.quote-creator-info-button'));
+
+    if (!clickedInsidePopover && !clickedInfoTrigger) {
+      this.isCreatorInfoOpen.set(false);
     }
   }
 

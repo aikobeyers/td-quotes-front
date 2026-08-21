@@ -99,3 +99,39 @@
 		opacity: 0.75;
 	}
 }
+
+:host-context(html[data-theme='dark']) {
+	.update-banner {
+		background: linear-gradient(180deg, #20304a 0%, #1a273d 100%);
+		color: #e6eefb;
+		border-bottom-color: #465d7f;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+
+		.update-banner__message {
+			color: #b8c9e1;
+		}
+
+		.update-banner__action {
+			border-color: #6984ad;
+			background: #2a3d5d;
+			color: #f1f6ff;
+		}
+	}
+
+	.notification-banner {
+		background: linear-gradient(180deg, #3a3125 0%, #2f281f 100%);
+		color: #f3e6d5;
+		border-bottom-color: #64533c;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+
+		.notification-banner__message {
+			color: #d4c2ab;
+		}
+
+		.notification-banner__action {
+			border-color: #8f7552;
+			background: #4a3d2d;
+			color: #f9ecdb;
+		}
+	}
+}
