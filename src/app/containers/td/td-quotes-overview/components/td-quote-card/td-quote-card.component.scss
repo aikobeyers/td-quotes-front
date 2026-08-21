@@ -285,3 +285,11 @@
         }
     }
 }
+
+:host-context(html[data-theme='dark']) {
+    .td-quote-card--container {
+        .quote--value {
+            color: #ecf2fb;
+        }
+    }
+}
