@@ -53,7 +53,13 @@ export class TdQuotesService {
     return this.http.get<TdQuoteWithId[]>(`${BASE_URL}/tdquotes/get`, { params });
   }
 
-  public createQuote(req: {value: string, date: string, by: string | undefined | null, newAuthor: string| undefined | null}): Observable<TdQuoteWithId> {
+  public createQuote(req: {
+    value: string;
+    date: string;
+    by: string | undefined | null;
+    newAuthor: string | undefined | null;
+    createdByAuthorId?: string | null;
+  }): Observable<TdQuoteWithId> {
     return this.http.post<TdQuoteWithId>(`${BASE_URL}/tdquotes/create`, req);
   }
 

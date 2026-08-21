@@ -1380,8 +1380,14 @@ export class TdQuotesOverviewComponent implements OnInit {
     by: string | undefined | null;
     newAuthor: string | undefined | null;
   }): void {
+    const activeUser = this.activeUser();
+    const createdByAuthorId = activeUser && this.isObjectId(activeUser.id) ? activeUser.id : null;
+
     this.tdQuotesService
-      .createQuote(quoteData)
+      .createQuote({
+        ...quoteData,
+        createdByAuthorId,
+      })
       .pipe(take(1))
       .subscribe((res: TdQuoteWithId) => {
         this.store.addQuote(res);

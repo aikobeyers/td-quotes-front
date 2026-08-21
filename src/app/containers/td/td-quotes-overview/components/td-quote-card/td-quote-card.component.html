@@ -23,16 +23,37 @@
 } @else {
 <div class="td-quote-card--container">
     <div class="quote-content">
-        @if (hasVersionHistory()) {
-            <button
-                class="quote-history-corner-button"
-                type="button"
-                aria-label="View quote history"
-                (click)="requestHistory()"
-            >
-                <span class="material-icons">history</span>
-            </button>
+        <div class="quote-corner-actions">
+            @if (hasVersionHistory()) {
+                <button
+                    class="quote-corner-button"
+                    type="button"
+                    aria-label="View quote history"
+                    (click)="requestHistory()"
+                >
+                    <span class="material-icons">history</span>
+                </button>
+            }
+
+            @if (tdQuote()?.createdBy) {
+                <button
+                    class="quote-corner-button quote-creator-info-button"
+                    type="button"
+                    aria-label="Show quote creator"
+                    [attr.aria-expanded]="isCreatorInfoOpen()"
+                    (click)="toggleCreatorInfo()"
+                >
+                    <span class="material-icons">info</span>
+                </button>
+            }
+        </div>
+
+        @if (isCreatorInfoOpen()) {
+            <div class="quote-creator-popover" role="status" aria-live="polite">
+                {{ creatorInfoText() }}
+            </div>
         }
+
         <div class="quote-mark">&#8220;</div>
         <span class="quote--value">{{ tdQuote()?.value }}</span>
     </div>
